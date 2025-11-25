@@ -13,4 +13,6 @@ pub enum RedTeamError {
     UnsupportedProfile(String),
     #[error("invalid scenario: {0}")]
     InvalidScenario(String),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 }

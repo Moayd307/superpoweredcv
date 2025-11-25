@@ -1,3 +1,4 @@
+use crate::pdf::{PdfMutationRequest, PdfMutator, PdfMutationResult, StubPdfMutator};
 use crate::pipeline::{LoggingConfig, MetricSpec, PipelineConfig};
 use crate::templates::InjectionTemplate;
 use crate::{Result, RedTeamError};
@@ -129,6 +130,8 @@ pub struct PdfVariant {
     pub templates: Vec<String>,
     pub base_pdf: PathBuf,
     pub mutated_pdf: Option<PathBuf>,
+    pub variant_hash: Option<String>,
+    pub watermark_applied: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,6 +144,9 @@ pub struct VariantImpact {
     pub llm_response_sample: Option<String>,
     pub profiles: Vec<String>,
     pub templates: Vec<String>,
+    pub mutated_pdf: Option<PathBuf>,
+    pub variant_hash: Option<String>,
+    pub notes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

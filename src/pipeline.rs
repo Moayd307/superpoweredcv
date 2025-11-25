@@ -16,6 +16,13 @@ pub enum PipelineType {
 pub struct PipelineConfig {
     pub pipeline_type: PipelineType,
     pub allow_aggressive_override: bool,
+    pub target: Option<String>,
+}
+
+impl PipelineConfig {
+    pub fn target(&self) -> Option<&str> {
+        self.target.as_deref()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
