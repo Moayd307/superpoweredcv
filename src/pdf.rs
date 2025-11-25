@@ -12,7 +12,6 @@ pub struct PdfMutationRequest {
     pub base_pdf: PathBuf,
     pub profile: ProfileConfig,
     pub template: InjectionTemplate,
-    pub watermark: Option<String>,
     pub variant_id: Option<String>,
 }
 
@@ -21,7 +20,6 @@ pub struct PdfMutationResult {
     pub variant_id: String,
     pub mutated_pdf: PathBuf,
     pub variant_hash: Option<String>,
-    pub watermark_applied: bool,
     pub notes: Vec<String>,
 }
 
@@ -53,12 +51,8 @@ impl PdfMutator for StubPdfMutator {
             .unwrap_or_else(|| Uuid::new_v4().to_string());
         let filename = format!("{variant_id}.txt");
         let output_path = self.output_dir.join(filename);
-        let watermark = request
-            .watermark
-            .unwrap_or_else(|| "RED TEAM / TEST ONLY".into());
-
         let contents = format!(
-            "variant_id: {variant_id}\nprofile: {}\ntemplate: {}\nwatermark: {watermark}\nbase_pdf: {}\n",
+            "variant_id: {variant_id}\nprofile: {}\ntemplate: {}\nbase_pdf: {}\n",
             request.profile.id(),
             request.template.id,
             request.base_pdf.display()
@@ -71,7 +65,6 @@ impl PdfMutator for StubPdfMutator {
             variant_id,
             mutated_pdf: output_path,
             variant_hash,
-            watermark_applied: true,
             notes: vec!["stub mutation created placeholder artifact".into()],
         })
     }

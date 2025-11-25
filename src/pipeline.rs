@@ -15,7 +15,6 @@ pub enum PipelineType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PipelineConfig {
     pub pipeline_type: PipelineType,
-    pub allow_aggressive_override: bool,
     pub target: Option<String>,
 }
 

@@ -27,10 +27,4 @@ Testing Guidelines
 Commit & Pull Request Guidelines
 --------------------------------
 - Keep commits scoped and descriptive (imperative mood), e.g., `Add stub PDF mutator`, `Wire pipeline executor trait`.
-- In PRs, include: purpose/what changed, how to test (`cargo check/run`), and any risk/safety notes (e.g., PDF mutation side effects). Attach screenshots or sample JSON output when UI/reporting changes are involved.
-
-Security & Configuration Tips
------------------------------
-- Watermark all red-team artifacts as `RED TEAM / TEST ONLY`; persist variant hashes for traceability.
-- Avoid embedding secrets in configs or prompts; treat pipeline endpoints and tokens as environment-configured.
-- Keep aggressive templates gated behind config (see `allow_aggressive_override` in `PipelineConfig`).
+- In PRs, include: purpose/what changed, how to test (`cargo check/run`), and any notes on PDF mutation behavior or outputs. Attach screenshots or sample JSON output when reporting changes are involved.

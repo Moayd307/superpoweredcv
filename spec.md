@@ -22,7 +22,6 @@ Deliver an accessible experience that:
 
 - Convert a LinkedIn export or browser‑extracted profile to a rendered PDF within 5s for 90% of cases.
 - Produce CVs that match an internal ATS‑parsing accuracy of ≥ 95% for name, email, titles, companies and dates (measured by test suite).
-- Maintain explicit user consent and transparent AI usage: every AI change must show an editable diff before applying.
 - Provide **content padding and job‑ad keyword integration** in clearly labeled, machine‑parsable fields; any non‑visible content used for experiments must be limited to **red‑team mode only**.
 - Offer **ATS/AI simulation and internal red‑team scenarios** so users and operators can see how robust their CVs and AI pipelines are.
 
@@ -33,7 +32,7 @@ In scope:
 - CV generation (LaTeX → PDF).
 - Visual editor and AI review.
 - Non‑adversarial metadata for ATS/AI.
-- **Internal red‑team module** for PDF injection and parsing robustness tests (off by default for normal users; opt‑in / operator‑only).
+- **Internal red-team module** for PDF injection and parsing robustness tests.
 
 Out of scope:
 - Non‑PDF formats as attack carriers (DOCX, HTML) in the current red‑team module.
@@ -173,12 +172,7 @@ Core flows:
 - **Bullet & Summary Rewrite** – targeted rewrites (concise, tailored, impact‑focused).
 - **Skill Extraction & Tagging** – propose skills from experiences/projects.
 
-Safety:
-- Show exactly what is sent to the AI.
-- Explicit opt‑in for storage.
-- Changes applied only on confirmation.
-
----
+--- 
 
 ## 7. ATS/AI Read Simulation (Non‑Adversarial)
 
@@ -196,12 +190,6 @@ Features:
 ## 8. PDF Red‑Team Module (Internal)
 
 > Purpose: allow operators and advanced users to **test and harden** AI/ATS pipelines against PDF‑based prompt/content injection and parsing edge cases.
-
-### 8.1 Scope & Safety Guardrails
-
-- Operates on **test profiles** and templates only (or local copies of user CVs with explicit consent).
-- Not enabled by default in production user flows.
-- Never exports mutated PDFs as normal CVs; they are clearly tagged as **RED TEAM / TEST ONLY**.
 
 ### 8.2 Integration Points
 
@@ -447,4 +435,3 @@ logging:
 - Advanced templates & multiple AI providers.
 - Optional advanced red‑team features (malformed PDFs, encoding games, stego).
 - Local‑only mode and richer sidecar exports.
-

@@ -250,16 +250,6 @@ logging:
 
 ---
 
-## 7. Safety & Labels
-
-- All generated PDFs **must** be watermarked or tagged internally as **TEST / RED TEAM ONLY** to avoid accidental production use.
-- Store:
-  - Mapping from base -> variant (hashes).
-  - Which profiles and templates were applied.
-- Provide a config flag `allow_aggressive_override` to disable the more extreme templates in less-permissive environments.
-
----
-
 ## 8. Minimal Reporting Schema
 
 For each run, emit a JSON summary such as:
@@ -282,4 +272,3 @@ For each run, emit a JSON summary such as:
   ]
 }
 ```
-

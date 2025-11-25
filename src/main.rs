@@ -40,7 +40,6 @@ fn main() {
                 endpoint: "https://example-ats-llm/api/score".into(),
                 prompt_template: Some("prompts/ats_prompt.txt".into()),
             },
-            allow_aggressive_override: true,
             target: Some("candidate_scoring_service_v2".into()),
         },
         metrics: vec![

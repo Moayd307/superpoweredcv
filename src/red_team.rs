@@ -131,7 +131,6 @@ pub struct PdfVariant {
     pub base_pdf: PathBuf,
     pub mutated_pdf: Option<PathBuf>,
     pub variant_hash: Option<String>,
-    pub watermark_applied: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,7 +199,6 @@ impl RedTeamEngine {
                 base_pdf: scenario.base_pdf.clone(),
                 profile: injection.profile.clone(),
                 template: template.clone(),
-                watermark: Some("RED TEAM / TEST ONLY".into()),
                 variant_id: Some(variant_id.clone()),
             })?;
 
@@ -211,7 +209,6 @@ impl RedTeamEngine {
                 base_pdf: scenario.base_pdf.clone(),
                 mutated_pdf: Some(mutation.mutated_pdf.clone()),
                 variant_hash: mutation.variant_hash.clone(),
-                watermark_applied: mutation.watermark_applied,
             };
 
             let mut impact = pipeline.evaluate(variant.clone(), scenario)?;

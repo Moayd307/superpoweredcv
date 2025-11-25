@@ -21,10 +21,10 @@ Key modules
 - `src/templates.rs` - built-in injection templates drawn from the spec (soft bias, overrides, control blocks, etc.).
 - `src/red_team.rs` - injection profile configs, scenario definition, a lightweight `RedTeamEngine`, and a `PipelineExecutor` trait for integrating ATS/AI evaluation.
 - `src/pipeline.rs` - pipeline and metric definitions for AI/ATS scoring and logging capture.
-- `src/pdf.rs` - PDF mutator abstraction plus a stub mutator that emits placeholder artifacts with hashes and red-team watermark tags.
+- `src/pdf.rs` - PDF mutator abstraction plus a stub mutator that emits placeholder artifacts with hashes.
 
 Next steps
 ----------
 - Implement real PDF mutation for each profile (visible blocks, low-visibility text, off-page layers, underlay text, structural fields, padding, inline job ads) wired into `PdfMutator`.
 - Integrate the ATS/AI simulation pipeline and metric computation so `ScenarioReport` contains real impacts via a concrete `PipelineExecutor`.
-- Add LaTeX rendering hooks and persist variant hashes + watermarks per the safety requirements.
+- Add LaTeX rendering hooks and persist variant hashes.
