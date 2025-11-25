@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "SuperpoweredCV Profile Grabber",
+  "version": "1.0",
+  "description": "Scrape LinkedIn profiles for SuperpoweredCV analysis.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/in/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

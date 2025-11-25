@@ -1,0 +1,25 @@
+body {
+  width: 300px;
+  font-family: sans-serif;
+  padding: 10px;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+button {
+  padding: 10px;
+  background-color: #0073b1;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+button:hover {
+  background-color: #005582;
+}
+#status {
+  font-size: 12px;
+  color: #666;
+}
