@@ -7,7 +7,7 @@
     "48": "src/assets/icon.png",
     "128": "src/assets/icon.png"
   },
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs", "downloads"],
   "host_permissions": [
     "https://www.linkedin.com/*"
   ],

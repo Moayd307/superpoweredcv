@@ -96,6 +96,9 @@ async function handleStartScrape(tabId) {
         // Notify Popup of completion
         chrome.runtime.sendMessage({ action: 'scrape_complete', data: scrapingState.data });
         
+        // Handle persistence and download in background (works even if popup is closed)
+        await handlePostScrape(scrapingState.data);
+        
         return { success: true };
 
     } catch (error) {
@@ -191,6 +194,59 @@ async function ensureContentScriptReady(tabId) {
     }
     
     return false;
+}
+
+async function handlePostScrape(data) {
+    const filename = generateFilename(data.name);
+    
+    // Save to history
+    await saveToHistory(data, filename);
+
+    // Check settings and download
+    const settings = await chrome.storage.sync.get(['autoDownload']);
+    if (settings.autoDownload !== false) {
+        await downloadData(data, filename);
+    }
+}
+
+function generateFilename(name) {
+    const cleanName = (name || 'unknown').toLowerCase().replace(/\s+/g, '');
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+    return `superpoweredcv-${cleanName}-${dateStr}-${timeStr}.json`;
+}
+
+async function saveToHistory(profile, filename) {
+    const result = await chrome.storage.local.get(['history']);
+    const history = result.history || [];
+    const entry = {
+        name: profile.name,
+        headline: profile.headline,
+        date: new Date().toISOString(),
+        filename: filename,
+        data: profile
+    };
+    history.unshift(entry);
+    if (history.length > 50) history.pop();
+    await chrome.storage.local.set({ history });
+}
+
+async function downloadData(data, filename) {
+    // Use base64 to handle unicode characters correctly
+    const jsonStr = JSON.stringify(data, null, 2);
+    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    const dataUrl = 'data:application/json;base64,' + base64;
+    
+    try {
+        await chrome.downloads.download({
+            url: dataUrl,
+            filename: filename,
+            saveAs: false
+        });
+    } catch (e) {
+        console.error('Download failed:', e);
+    }
 }
 
 // Export for testing

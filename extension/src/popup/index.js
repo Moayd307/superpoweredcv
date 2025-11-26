@@ -95,7 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function handleScrapeComplete(data, statusDiv, previewDiv) {
-    const settings = await loadSettings();
     Logger.info('Scrape successful', data);
     
     // Render preview using our "templating engine"
@@ -103,15 +102,8 @@ async function handleScrapeComplete(data, statusDiv, previewDiv) {
         previewDiv.innerHTML = renderProfileTemplate(data);
     }
 
-    const filename = generateFilename(data.name);
-    
-    // Save to history
-    await saveToHistory(data, filename);
-
-    // Auto download if enabled
-    if (settings.autoDownload) {
-        downloadJSON(data, filename);
-    }
+    // NOTE: History saving and Auto-download are now handled by the Background Script
+    // to ensure they work even if the popup is closed.
     
     updateStatus(statusDiv, 'Done!');
 }
@@ -156,22 +148,6 @@ async function loadSettings() {
 
 async function saveSettings(newSettings) {
     await chrome.storage.sync.set(newSettings);
-}
-
-async function saveToHistory(profile, filename) {
-    const result = await chrome.storage.local.get(['history']);
-    const history = result.history || [];
-    const entry = {
-        name: profile.name,
-        headline: profile.headline,
-        date: new Date().toISOString(),
-        filename: filename,
-        data: profile // Store full data for re-download
-    };
-    // Add to top, limit to 50
-    history.unshift(entry);
-    if (history.length > 50) history.pop();
-    await chrome.storage.local.set({ history });
 }
 
 async function renderHistory() {
@@ -226,19 +202,6 @@ async function deleteHistoryItem(index) {
         await chrome.storage.local.set({ history });
         renderHistory();
     }
-}
-
-/**
- * Generates the filename in the format: superpoweredcv-name-date-time.json
- * @param {string} name - The profile name.
- * @returns {string} The formatted filename.
- */
-function generateFilename(name) {
-    const cleanName = (name || 'unknown').toLowerCase().replace(/\s+/g, '');
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-    return `superpoweredcv-${cleanName}-${dateStr}-${timeStr}.json`;
 }
 
 /**
