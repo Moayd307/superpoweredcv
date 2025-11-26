@@ -2,14 +2,17 @@ use eframe::egui;
 use rfd::FileDialog;
 use std::path::PathBuf;
 use superpoweredcv::generator::{self, ScrapedProfile};
-use superpoweredcv::analysis::{ProfileConfig, InjectionPosition, Intensity, LowVisibilityPalette, OffpageOffset};
+use superpoweredcv::analysis::{ProfileConfig, InjectionPosition, Intensity, LowVisibilityPalette, OffpageOffset, InjectionContent};
+use superpoweredcv::templates::GenerationType;
+use superpoweredcv::config::AppConfig;
+use superpoweredcv::llm::LlmClient;
 use std::fs::File;
 
 pub fn run_gui() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([600.0, 400.0])
-            .with_resizable(false),
+            .with_inner_size([800.0, 700.0])
+            .with_resizable(true),
         ..Default::default()
     };
     eframe::run_native(
@@ -32,6 +35,16 @@ struct MyApp {
     injection_type: InjectionTypeGui,
     intensity: Intensity,
     position: InjectionPosition,
+    
+    // Content
+    generation_type: GenerationType,
+    phrases: Vec<String>,
+    current_phrase: String,
+    job_description: String,
+    
+    // Config
+    config: AppConfig,
+    show_settings: bool,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -51,20 +64,59 @@ impl Default for MyApp {
             injection_type: InjectionTypeGui::None,
             intensity: Intensity::Medium,
             position: InjectionPosition::Header,
+            generation_type: GenerationType::Static,
+            phrases: vec![],
+            current_phrase: String::new(),
+            job_description: String::new(),
+            config: AppConfig::load(),
+            show_settings: false,
         }
     }
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().frame(egui::Frame::NONE.inner_margin(20.0)).show(ctx, |ui| {
             ui.vertical_centered(|ui| {
-                ui.add_space(20.0);
-                ui.heading(egui::RichText::new("SUPERPOWERED_CV").size(32.0).strong().color(egui::Color32::from_rgb(0, 255, 65)));
                 ui.add_space(10.0);
+                ui.heading(egui::RichText::new("SUPERPOWERED_CV").size(32.0).strong().color(egui::Color32::from_rgb(255, 69, 0)));
+                ui.add_space(5.0);
                 ui.label(egui::RichText::new("TARGET: PDF_GENERATION_MODULE").monospace().color(egui::Color32::LIGHT_GRAY));
-                ui.add_space(30.0);
+                ui.add_space(20.0);
             });
+
+            // Settings Toggle
+            if ui.button("SETTINGS").clicked() {
+                self.show_settings = !self.show_settings;
+            }
+
+            if self.show_settings {
+                ui.group(|ui| {
+                    ui.label(egui::RichText::new("LLM CONFIGURATION").strong());
+                    ui.horizontal(|ui| {
+                        ui.label("API URL:");
+                        ui.text_edit_singleline(&mut self.config.llm.api_base_url);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("MODEL:");
+                        ui.text_edit_singleline(&mut self.config.llm.model);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("API KEY:");
+                        let mut key = self.config.llm.api_key.clone().unwrap_or_default();
+                        ui.add(egui::TextEdit::singleline(&mut key).password(true));
+                        self.config.llm.api_key = if key.is_empty() { None } else { Some(key) };
+                    });
+                    if ui.button("SAVE CONFIG").clicked() {
+                        if let Err(e) = self.config.save() {
+                            self.log(&format!("ERROR: CONFIG_SAVE_FAIL: {}", e));
+                        } else {
+                            self.log("CONFIG_SAVED");
+                        }
+                    }
+                });
+                ui.add_space(10.0);
+            }
 
             // Input Section
             ui.group(|ui| {
@@ -162,16 +214,66 @@ impl eframe::App for MyApp {
                                     });
                             });
                         }
+
+                        ui.separator();
+                        ui.label(egui::RichText::new("CONTENT GENERATION:").strong());
+                        
+                        ui.horizontal(|ui| {
+                            ui.label("MODE:");
+                            egui::ComboBox::from_id_salt("gen_type")
+                                .selected_text(format!("{:?}", self.generation_type))
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(&mut self.generation_type, GenerationType::Static, "Static");
+                                    ui.selectable_value(&mut self.generation_type, GenerationType::LlmControl, "LLM Control");
+                                    ui.selectable_value(&mut self.generation_type, GenerationType::Pollution, "Pollution");
+                                    ui.selectable_value(&mut self.generation_type, GenerationType::AdTargeted, "Ad Targeted");
+                                });
+                        });
+
+                        if self.generation_type == GenerationType::AdTargeted {
+                            ui.label("JOB DESCRIPTION:");
+                            ui.text_edit_multiline(&mut self.job_description);
+                        }
+
+                        if self.generation_type != GenerationType::Static {
+                            if ui.button("GENERATE WITH LLM").clicked() {
+                                self.generate_content();
+                            }
+                        }
+
+                        ui.label("PHRASES:");
+                        ui.horizontal(|ui| {
+                            ui.text_edit_singleline(&mut self.current_phrase);
+                            if ui.button("ADD").clicked() && !self.current_phrase.is_empty() {
+                                self.phrases.push(self.current_phrase.clone());
+                                self.current_phrase.clear();
+                            }
+                        });
+
+                        egui::ScrollArea::vertical().max_height(100.0).show(ui, |ui| {
+                            let mut to_remove = None;
+                            for (i, phrase) in self.phrases.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("- {}", phrase));
+                                    if ui.button("X").clicked() {
+                                        to_remove = Some(i);
+                                    }
+                                });
+                            }
+                            if let Some(i) = to_remove {
+                                self.phrases.remove(i);
+                            }
+                        });
                     }
                 });
             });
 
-            ui.add_space(30.0);
+            ui.add_space(20.0);
 
             // Action Button
             let generate_btn = egui::Button::new(egui::RichText::new("INITIATE_GENERATION").size(18.0).strong())
                 .min_size(egui::vec2(ui.available_width(), 50.0))
-                .fill(egui::Color32::from_rgb(0, 255, 65)); // Matrix Green
+                .fill(egui::Color32::from_rgb(255, 69, 0)); // Fire Red
 
             if ui.add_enabled(self.input_path.is_some() && self.output_path.is_some(), generate_btn).clicked() {
                 self.generate();
@@ -198,6 +300,34 @@ impl MyApp {
         self.status_log.push(format!("> {}", msg));
     }
 
+    fn generate_content(&mut self) {
+        self.log("CONTACTING LLM...");
+        let client = LlmClient::new(self.config.llm.clone());
+        
+        let prompt = match self.generation_type {
+            GenerationType::LlmControl => &self.config.prompts.control_sequence_generation,
+            GenerationType::Pollution => &self.config.prompts.pollution_skills_generation,
+            GenerationType::AdTargeted => &self.config.prompts.ad_targeted_pollution,
+            _ => return,
+        };
+
+        let final_prompt = if self.generation_type == GenerationType::AdTargeted {
+            prompt.replace("{job_description}", &self.job_description)
+        } else {
+            prompt.clone()
+        };
+
+        match client.generate(&final_prompt) {
+            Ok(content) => {
+                self.phrases.push(content);
+                self.log("LLM: CONTENT_RECEIVED");
+            }
+            Err(e) => {
+                self.log(&format!("ERROR: LLM_FAIL: {}", e));
+            }
+        }
+    }
+
     fn generate(&mut self) {
         self.log("STARTING_SEQUENCE...");
         
@@ -220,20 +350,29 @@ impl MyApp {
             }
         };
 
+        let content = InjectionContent {
+            phrases: self.phrases.clone(),
+            generation_type: self.generation_type.clone(),
+            job_description: if self.generation_type == GenerationType::AdTargeted { Some(self.job_description.clone()) } else { None },
+        };
+
         let injection_config = match self.injection_type {
             InjectionTypeGui::None => None,
             InjectionTypeGui::VisibleMetaBlock => Some(ProfileConfig::VisibleMetaBlock {
                 position: self.position.clone(),
                 intensity: self.intensity.clone(),
+                content,
             }),
             InjectionTypeGui::LowVisibilityBlock => Some(ProfileConfig::LowVisibilityBlock {
                 font_size_min: 1,
                 font_size_max: 1,
                 color_profile: LowVisibilityPalette::Gray,
+                content,
             }),
             InjectionTypeGui::OffpageLayer => Some(ProfileConfig::OffpageLayer {
                 offset_strategy: OffpageOffset::BottomClip,
                 length: None,
+                content,
             }),
         };
 
@@ -275,15 +414,15 @@ fn setup_custom_styles(ctx: &egui::Context) {
     // High Contrast Borders
     visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(50, 50, 50));
     visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(50, 50, 50));
-    visuals.widgets.hovered.bg_stroke = egui::Stroke::new(2.0, egui::Color32::WHITE);
-    visuals.widgets.active.bg_stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 255, 65));
+    visuals.widgets.hovered.bg_stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 165, 0)); // Orange
+    visuals.widgets.active.bg_stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 69, 0)); // Red-Orange
 
     // Button Colors
     visuals.widgets.inactive.weak_bg_fill = egui::Color32::TRANSPARENT;
-    visuals.widgets.hovered.weak_bg_fill = egui::Color32::from_rgb(20, 20, 20);
+    visuals.widgets.hovered.weak_bg_fill = egui::Color32::from_rgb(40, 10, 10); // Dark Red tint
     
     // Selection
-    visuals.selection.bg_fill = egui::Color32::from_rgb(0, 255, 65);
+    visuals.selection.bg_fill = egui::Color32::from_rgb(255, 69, 0); // Red-Orange
     visuals.selection.stroke = egui::Stroke::new(1.0, egui::Color32::BLACK);
 
     ctx.set_visuals(visuals);

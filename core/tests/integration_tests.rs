@@ -22,6 +22,7 @@ fn test_pdf_mutation_visible_block() {
         profile: ProfileConfig::VisibleMetaBlock {
             position: InjectionPosition::Header,
             intensity: Intensity::Medium,
+            content: Default::default(),
         },
         template: AnalysisTemplate {
             id: "test_template".to_string(),
@@ -30,6 +31,9 @@ fn test_pdf_mutation_visible_block() {
             style: TemplateStyle::Subtle,
             control: ControlType::Plain,
             text_template: "This is a test injection.".to_string(),
+            phrases: vec![],
+            generation_type: Default::default(),
+            job_description: None,
         },
         variant_id: Some("test_variant_visible".to_string()),
     };
@@ -58,6 +62,7 @@ fn test_pdf_mutation_low_visibility() {
             font_size_min: 1,
             font_size_max: 1,
             color_profile: LowVisibilityPalette::Gray,
+            content: Default::default(),
         },
         template: AnalysisTemplate {
             id: "test_template".to_string(),
@@ -66,6 +71,9 @@ fn test_pdf_mutation_low_visibility() {
             style: TemplateStyle::Subtle,
             control: ControlType::Plain,
             text_template: "This is a hidden test injection.".to_string(),
+            phrases: vec![],
+            generation_type: Default::default(),
+            job_description: None,
         },
         variant_id: Some("test_variant_low".to_string()),
     };

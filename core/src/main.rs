@@ -44,7 +44,44 @@ enum Commands {
         /// Output PDF path
         #[arg(short, long)]
         output: PathBuf,
+
+        /// Injection type
+        #[arg(long, value_enum, default_value_t = CliInjectionType::None)]
+        injection: CliInjectionType,
+
+        /// Intensity
+        #[arg(long, value_enum, default_value_t = CliIntensity::Medium)]
+        intensity: CliIntensity,
+
+        /// Position (for VisibleMeta)
+        #[arg(long, value_enum, default_value_t = CliPosition::Header)]
+        position: CliPosition,
+
+        /// Phrases to inject (for Static generation)
+        #[arg(long)]
+        phrases: Vec<String>,
     },
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum CliInjectionType {
+    None,
+    VisibleMeta,
+    LowVis,
+    Offpage,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum CliIntensity {
+    Soft,
+    Medium,
+    Aggressive,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum CliPosition {
+    Header,
+    Footer,
 }
 
 fn main() {
@@ -68,8 +105,8 @@ fn main() {
                 eprintln!("Error: --config argument is required for 'validate' command.");
             }
         }
-        Some(Commands::Generate { profile, output }) => {
-            generate_pdf_from_json(profile, output);
+        Some(Commands::Generate { profile, output, injection, intensity, position, phrases }) => {
+            generate_pdf_from_json(profile, output, injection, intensity, position, phrases);
         }
         None => {
             println!("Starting GUI...");
@@ -80,7 +117,14 @@ fn main() {
     }
 }
 
-fn generate_pdf_from_json(profile_path: &PathBuf, output_path: &PathBuf) {
+fn generate_pdf_from_json(
+    profile_path: &PathBuf, 
+    output_path: &PathBuf,
+    injection: &CliInjectionType,
+    intensity: &CliIntensity,
+    position: &CliPosition,
+    phrases: &Vec<String>
+) {
     let file = match StdFile::open(profile_path) {
         Ok(f) => f,
         Err(e) => {
@@ -97,7 +141,40 @@ fn generate_pdf_from_json(profile_path: &PathBuf, output_path: &PathBuf) {
         }
     };
 
-    match generator::generate_pdf(&profile, output_path, None) {
+    let content = superpoweredcv::analysis::InjectionContent {
+        phrases: phrases.clone(),
+        generation_type: superpoweredcv::templates::GenerationType::Static,
+        job_description: None,
+    };
+
+    let injection_config = match injection {
+        CliInjectionType::None => None,
+        CliInjectionType::VisibleMeta => Some(ProfileConfig::VisibleMetaBlock {
+            position: match position {
+                CliPosition::Header => InjectionPosition::Header,
+                CliPosition::Footer => InjectionPosition::Footer,
+            },
+            intensity: match intensity {
+                CliIntensity::Soft => Intensity::Soft,
+                CliIntensity::Medium => Intensity::Medium,
+                CliIntensity::Aggressive => Intensity::Aggressive,
+            },
+            content,
+        }),
+        CliInjectionType::LowVis => Some(ProfileConfig::LowVisibilityBlock {
+            font_size_min: 1,
+            font_size_max: 1,
+            color_profile: superpoweredcv::analysis::LowVisibilityPalette::Gray,
+            content,
+        }),
+        CliInjectionType::Offpage => Some(ProfileConfig::OffpageLayer {
+            offset_strategy: superpoweredcv::analysis::OffpageOffset::BottomClip,
+            length: None,
+            content,
+        }),
+    };
+
+    match generator::generate_pdf(&profile, output_path, injection_config.as_ref()) {
         Ok(_) => println!("PDF generated successfully at {}", output_path.display()),
         Err(e) => eprintln!("Failed to generate PDF: {}", e),
     }
@@ -154,6 +231,7 @@ fn run_demo_scenario() {
                 profile: ProfileConfig::VisibleMetaBlock {
                     position: InjectionPosition::Footer,
                     intensity: Intensity::Soft,
+                    content: Default::default(),
                 },
                 template_id: "soft_bias".into(),
             },

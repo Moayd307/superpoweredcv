@@ -21,6 +21,8 @@ See [extension/README.md](extension/README.md) for detailed instructions.
 ### 2. Build the CLI
 The core logic is written in Rust. You'll need a Rust toolchain installed.
 
+**Important:** All cargo commands must be run from the `core` directory.
+
 ```bash
 cd core
 cargo build --release

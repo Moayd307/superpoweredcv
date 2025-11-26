@@ -1,6 +1,6 @@
 use crate::pdf::{PdfMutationRequest, PdfMutator, RealPdfMutator};
 use crate::pipeline::{LoggingConfig, MetricSpec, PipelineConfig, PipelineType};
-use crate::templates::AnalysisTemplate;
+use crate::templates::{AnalysisTemplate, GenerationType};
 use crate::{Result, AnalysisError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -26,6 +26,8 @@ pub enum Intensity {
     Medium,
     /// Aggressive intensity.
     Aggressive,
+    /// Custom intensity (uses provided content directly).
+    Custom,
 }
 
 /// Palette for low-visibility text.
@@ -94,6 +96,30 @@ pub enum JobAdPlacement {
     Custom,
 }
 
+/// Content configuration for the injection.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InjectionContent {
+    /// List of phrases to inject.
+    #[serde(default)]
+    pub phrases: Vec<String>,
+    /// How the content is generated.
+    #[serde(default)]
+    pub generation_type: GenerationType,
+    /// Job description for ad-targeted pollution.
+    #[serde(default)]
+    pub job_description: Option<String>,
+}
+
+impl Default for InjectionContent {
+    fn default() -> Self {
+        Self {
+            phrases: vec![],
+            generation_type: GenerationType::Static,
+            job_description: None,
+        }
+    }
+}
+
 /// Configuration for the injection profile.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProfileConfig {
@@ -103,6 +129,9 @@ pub enum ProfileConfig {
         position: InjectionPosition,
         /// Intensity of the instructions.
         intensity: Intensity,
+        /// Content configuration.
+        #[serde(default)]
+        content: InjectionContent,
     },
     /// Low-visibility block (small font, low contrast).
     LowVisibilityBlock {
@@ -112,6 +141,9 @@ pub enum ProfileConfig {
         font_size_max: u8,
         /// Color palette to use.
         color_profile: LowVisibilityPalette,
+        /// Content configuration.
+        #[serde(default)]
+        content: InjectionContent,
     },
     /// Text placed off the visible page area.
     OffpageLayer {
@@ -119,6 +151,9 @@ pub enum ProfileConfig {
         offset_strategy: OffpageOffset,
         /// Length of the text.
         length: Option<u32>,
+        /// Content configuration.
+        #[serde(default)]
+        content: InjectionContent,
     },
     /// Text hidden under other elements.
     UnderlayText,

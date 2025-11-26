@@ -5,6 +5,8 @@ pub mod profile;
 pub mod analysis;
 pub mod templates;
 pub mod generator;
+pub mod config;
+pub mod llm;
 
 /// A specialized result type for Analysis operations.
 pub type Result<T> = std::result::Result<T, AnalysisError>;
