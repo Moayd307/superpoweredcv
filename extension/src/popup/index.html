@@ -8,13 +8,40 @@
   <div class="container">
     <h2>SuperpoweredCV</h2>
     <div class="subtitle">Profile Extraction Unit</div>
-    <div class="info-box">
-      <span class="info-label">TARGET:</span> LINKEDIN_PROFILE<br>
-      <span class="info-label">ACTION:</span> EXTRACT_DATA
+    
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="scraper">Scraper</button>
+      <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
-    <button id="grabBtn">INITIATE_DUMP</button>
-    <div id="status">> READY</div>
-    <div id="preview" class="preview"></div>
+
+    <div id="scraper" class="tab-content active">
+        <div class="info-box">
+          <span class="info-label">TARGET:</span> LINKEDIN_PROFILE<br>
+          <span class="info-label">ACTION:</span> EXTRACT_DATA
+        </div>
+        <button id="grabBtn">INITIATE_DUMP</button>
+        <div id="status">> READY</div>
+        <div id="preview" class="preview"></div>
+    </div>
+
+    <div id="history" class="tab-content">
+        <div id="historyList" class="history-list"></div>
+        <button id="clearHistoryBtn" class="secondary-btn">CLEAR HISTORY</button>
+    </div>
+
+    <div id="settings" class="tab-content">
+        <div class="setting-item">
+            <label>
+                <input type="checkbox" id="autoDownload" checked> Auto-download JSON
+            </label>
+        </div>
+        <div class="setting-item">
+            <label>
+                <input type="checkbox" id="debugMode"> Debug Mode
+            </label>
+        </div>
+    </div>
   </div>
   <script src="../utils/logger.js"></script>
   <script src="index.js"></script>
