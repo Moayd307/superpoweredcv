@@ -98,45 +98,76 @@ function updateStatus(msg) {r.message };
     chrome.runtime.sendMessage({ action: 'progress', message: msg });
 }
 function updateStatus(msg) {
+    scrapingState.status = msg;
+    chrome.runtime.sendMessage({ action: 'progress', message: msg });
+}
+
 function sendMessageToTab(tabId, message) {
-    return new Promise((resolve) => {on: 'progress', message: msg });
+    return new Promise((resolve) => {
         chrome.tabs.sendMessage(tabId, message, (response) => {
             if (chrome.runtime.lastError) {
                 console.warn('Tab message failed:', chrome.runtime.lastError.message);
                 // Retry once after 1s if it's a connection error
                 if (chrome.runtime.lastError.message.includes('Receiving end does not exist')) {
-                    setTimeout(() => {or) {
-                        chrome.tabs.sendMessage(tabId, message, (retryResponse) => {);
-                            if (chrome.runtime.lastError) { error
+                    setTimeout(() => {
+                        chrome.tabs.sendMessage(tabId, message, (retryResponse) => {
+                            if (chrome.runtime.lastError) {
                                 console.error('Retry failed:', chrome.runtime.lastError.message);
                                 resolve(null);
-                            } else {sendMessage(tabId, message, (retryResponse) => {
-                                resolve(retryResponse);r) {
-                            }   console.error('Retry failed:', chrome.runtime.lastError.message);
-                        });     resolve(null);
-                    }, 1000); else {
-                } else {        resolve(retryResponse);
+                            } else {
+                                resolve(retryResponse);
+                            }
+                        });
+                    }, 1000);
+                } else {
                     resolve(null);
-                }       });
-            } else {}, 1000);
+                }
+            } else {
                 resolve(response);
-            }       resolve(null);
-        });     }
-    });     } else {
-}               resolve(response);
             }
+        });
+    });
+}
+
 function waitForTabLoad(tabId) {
     return new Promise((resolve) => {
         const listener = (tid, changeInfo) => {
             if (tid === tabId && changeInfo.status === 'complete') {
                 chrome.tabs.onUpdated.removeListener(listener);
-                resolve();solve) => {
-            } listener = (tid, changeInfo) => {
-        };  if (tid === tabId && changeInfo.status === 'complete') {
-        chrome.tabs.onUpdated.addListener(listener);(listener);
-    });         resolve();
-}           }
+                resolve();
+            }
         };
+        chrome.tabs.onUpdated.addListener(listener);
+    });
+}
+
+async function ensureContentScriptReady(tabId) {
+    // Try pinging first
+    for (let i = 0; i < 3; i++) {
+        const response = await sendMessageToTab(tabId, { action: 'ping' });
+        if (response && response.status === 'alive') return true;
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    // If ping fails, try injecting
+    try {
+        console.log('Content script not responding, attempting injection...');
+        await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: ['src/content/index.js']
+        });
+        
+        // Wait a bit for it to initialize
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Ping again
+        const response = await sendMessageToTab(tabId, { action: 'ping' });
+        return response && response.status === 'alive';
+    } catch (e) {
+        console.error('Injection failed:', e);
+        return false;
+    }
+}
 
 
 
