@@ -6,7 +6,35 @@ SuperpoweredCV is a comprehensive tool designed for red-teaming ATS (Applicant T
 The project consists of three main components:
 1.  **Core CLI**: A Rust-based command-line tool for analysis and PDF generation.
 2.  **Browser Extension**: A Chrome/Firefox extension to scrape profile data.
-3.  **Documentation**: Guides and specifications.
+## CLI Commands
+
+The `superpoweredcv` CLI provides a suite of tools for generating, injecting, and analyzing resumes.
+
+### General
+*   `superpoweredcv docs`: Open the documentation in your default browser.
+*   `superpoweredcv --help`: Show the help message and list of commands.
+
+### Generation & Injection
+*   `superpoweredcv generate --profile <json_path> --output <pdf_path>`: Generate a PDF resume from a scraped JSON profile.
+    *   `--injection <type>`: Specify injection type (`VisibleMeta`, `LowVis`, `Offpage`, `TrackingPixel`, `CodeInjection`).
+    *   `--intensity <level>`: Set intensity (`Soft`, `Medium`, `Aggressive`).
+    *   `--position <pos>`: Set position (`Header`, `Footer`).
+*   `superpoweredcv inject --input <pdf_path> --output <pdf_path> --type <type> --payload <content>`: Inject a payload into an existing PDF.
+*   `superpoweredcv preview --output <pdf_path>`: Generate a preview PDF showing injection layouts.
+
+### Analysis
+*   `superpoweredcv analyze --scenario <path>`: Run an analysis scenario defined in a file.
+*   `superpoweredcv demo`: Run the built-in demo scenario.
+*   `superpoweredcv validate --config <path>`: Validate a configuration file.
+
+## GUI Mode
+Running `superpoweredcv` without arguments launches the graphical user interface.
+
+### GUI Features
+*   **Brutalist Design**: High-contrast, efficient interface.
+*   **Independent Windows**: Settings, Logs, and Preview open in separate, pinnable windows.
+*   **Visual Preview**: Real-time visualization of injection placement.
+*   **LaTeX Builder**: Visual builder for resume sections.
 
 ## Getting Started
 

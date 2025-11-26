@@ -207,3 +207,65 @@ pub fn create_blank_pdf() -> Document {
     doc.trailer.set("Root", catalog_id);
     doc
 }
+
+/// Adds a Link Annotation to a page.
+pub fn add_link_annotation(
+    doc: &mut Document,
+    page_number: u32,
+    url: &str,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<()> {
+    let pages = doc.get_pages();
+    let page_id = *pages.get(&page_number).ok_or_else(|| AnalysisError::PdfError(format!("Page {} not found", page_number)))?;
+
+    let rect = vec![x.into(), y.into(), (x + width).into(), (y + height).into()];
+    
+    let action = dictionary! {
+        "Type" => "Action",
+        "S" => "URI",
+        "URI" => Object::string_literal(url),
+    };
+
+    let annotation = dictionary! {
+        "Type" => "Annot",
+        "Subtype" => "Link",
+        "Rect" => Object::Array(rect),
+        "Border" => Object::Array(vec![0.into(), 0.into(), 0.into()]), // Invisible border
+        "A" => action,
+    };
+
+    let annot_id = doc.add_object(annotation);
+
+    let page = doc.get_object_mut(page_id).unwrap().as_dict_mut().unwrap();
+    if !page.has(b"Annots") {
+        page.set("Annots", Object::Array(vec![]));
+    }
+
+    if let Ok(Object::Array(annots)) = page.get_mut(b"Annots") {
+        annots.push(Object::Reference(annot_id));
+    }
+
+    Ok(())
+}
+
+/// Adds a JavaScript OpenAction to the document.
+pub fn add_javascript_action(doc: &mut Document, script: &str) -> Result<()> {
+    let action = dictionary! {
+        "Type" => "Action",
+        "S" => "JavaScript",
+        "JS" => Object::string_literal(script),
+    };
+
+    let action_id = doc.add_object(action);
+
+    // Set OpenAction in Catalog
+    let catalog_id = doc.trailer.get(b"Root").unwrap().as_reference().unwrap();
+    let catalog = doc.get_object_mut(catalog_id).unwrap().as_dict_mut().unwrap();
+    
+    catalog.set("OpenAction", Object::Reference(action_id));
+
+    Ok(())
+}

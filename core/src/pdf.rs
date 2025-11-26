@@ -158,7 +158,7 @@ impl PdfMutator for RealPdfMutator {
                     }
                 }
                 ProfileConfig::PaddingNoise { padding_tokens_before, padding_tokens_after, padding_style } => {
-                    let noise = generate_noise(*padding_tokens_before, *padding_tokens_after, padding_style);
+                    let noise = generate_noise(Some(*padding_tokens_before as u32), Some(*padding_tokens_after as u32), padding_style);
                     final_injected_text = noise.clone();
                     // Inject as low visibility text at the end
                     pdf_utils::add_text_to_page(&mut doc, 1, &noise, 50.0, 10.0, 1.0, 0.99)?;
@@ -182,6 +182,19 @@ impl PdfMutator for RealPdfMutator {
                     // but "Inline" might mean visible. Let's use small white text for safety in this context.
                     pdf_utils::add_text_to_page(&mut doc, 1, &ad_text, x, y, 4.0, 0.95)?;
                     notes.push(format!("Injected inline job ad ({:?})", placement));
+                }
+                ProfileConfig::TrackingPixel { url } => {
+                    // Inject a URI Action on a Link Annotation (invisible rectangle)
+                    // This is the most reliable way to trigger a network request on click, 
+                    // but for "open" tracking, we might try an external XObject or just a link covering the whole page.
+                    // Here we add a link covering the top of the page.
+                    pdf_utils::add_link_annotation(&mut doc, 1, url, 0.0, 0.0, 600.0, 850.0)?;
+                    notes.push(format!("Injected tracking link (covering page) to {}", url));
+                }
+                ProfileConfig::CodeInjection { payload } => {
+                    // Inject JavaScript Action into the OpenAction of the PDF
+                    pdf_utils::add_javascript_action(&mut doc, payload)?;
+                    notes.push("Injected JavaScript OpenAction".to_string());
                 }
             }
         }

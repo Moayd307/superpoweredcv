@@ -61,6 +61,29 @@ enum Commands {
         #[arg(long)]
         phrases: Vec<String>,
     },
+    /// Inject a payload into an existing PDF
+    Inject {
+        /// Path to the input PDF
+        #[arg(short, long)]
+        input: PathBuf,
+        /// Path to the output PDF
+        #[arg(short, long)]
+        output: PathBuf,
+        /// Type of injection
+        #[arg(long, value_enum)]
+        type_: CliInjectionType,
+        /// Payload content (text, url, or code)
+        #[arg(long)]
+        payload: Option<String>,
+    },
+    /// Preview the injection layout (generates a dummy PDF)
+    Preview {
+        /// Output path for the preview PDF
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Open the documentation
+    Docs,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -69,6 +92,8 @@ enum CliInjectionType {
     VisibleMeta,
     LowVis,
     Offpage,
+    TrackingPixel,
+    CodeInjection,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -97,6 +122,19 @@ fn main() {
         }
         Some(Commands::Demo) => {
             run_demo_scenario();
+        }
+        Some(Commands::Inject { input, output, type_, payload }) => {
+            println!("Injecting {:?} into {:?} -> {:?}", type_, input, output);
+            // Placeholder for injection logic
+        }
+        Some(Commands::Preview { output }) => {
+            println!("Generating preview at {:?}", output);
+            // Placeholder for preview generation
+        }
+        Some(Commands::Docs) => {
+            if open::that("https://github.com/supermarsx/superpoweredcv").is_err() {
+                println!("Could not open documentation in browser. Please visit https://github.com/supermarsx/superpoweredcv");
+            }
         }
         Some(Commands::Validate) => {
             if let Some(config_path) = &cli.config {
@@ -179,8 +217,13 @@ fn generate_pdf_from_json(
         }),
         CliInjectionType::Offpage => Some(ProfileConfig::OffpageLayer {
             offset_strategy: superpoweredcv::analysis::OffpageOffset::BottomClip,
-            length: None,
             content,
+        }),
+        CliInjectionType::TrackingPixel => Some(ProfileConfig::TrackingPixel {
+            url: phrases.first().cloned().unwrap_or_else(|| "https://canarytokens.org/pixel".to_string()),
+        }),
+        CliInjectionType::CodeInjection => Some(ProfileConfig::CodeInjection {
+            payload: phrases.join(" "),
         }),
     };
 
@@ -272,8 +315,8 @@ fn run_demo_scenario() {
             // Plan 2: Aggressive override with padding noise
             AnalysisPlan {
                 profile: ProfileConfig::PaddingNoise {
-                    padding_tokens_before: Some(256),
-                    padding_tokens_after: Some(256),
+                    padding_tokens_before: 256,
+                    padding_tokens_after: 256,
                     padding_style: PaddingStyle::JobRelated,
                 },
                 template_id: "aggressive_override".into(),

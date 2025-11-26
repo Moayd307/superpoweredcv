@@ -232,6 +232,8 @@ impl eframe::App for MyApp {
                 builder,
                 |ctx, _class| {
                     custom_window_frame(ctx, "SYSTEM_LOGS", |ui| {
+                        ui.heading(egui::RichText::new("/// SYSTEM EVENT LOG ///").strong().color(egui::Color32::from_rgb(0, 255, 0)));
+                        ui.separator();
                         egui::ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
                             for log in &self.status_log {
                                 ui.label(egui::RichText::new(log).monospace().size(10.0));
@@ -246,10 +248,106 @@ impl eframe::App for MyApp {
             );
             self.logs_pinned = pinned;
         }
+
+        // Preview Window
+        if self.show_injection_preview {
+            let mut pinned = self.preview_pinned;
+            let mut builder = egui::ViewportBuilder::default()
+                .with_title("INJECTION_PREVIEW")
+                .with_inner_size([600.0, 800.0])
+                .with_decorations(false)
+                .with_transparent(true);
+            
+            if pinned {
+                builder = builder.with_always_on_top();
+            }
+
+            ctx.show_viewport_immediate(
+                egui::ViewportId::from_hash_of("preview_viewport"),
+                builder,
+                |ctx, _class| {
+                    custom_window_frame(ctx, "INJECTION_PREVIEW", |ui| {
+                        self.render_preview(ui);
+                    }, &mut pinned);
+                    
+                    if ctx.input(|i| i.viewport().close_requested()) {
+                        self.show_injection_preview = false;
+                    }
+                }
+            );
+            self.preview_pinned = pinned;
+        }
     }
 }
 
 impl MyApp {
+    fn render_preview(&self, ui: &mut egui::Ui) {
+        ui.label(egui::RichText::new("VISUAL_DIAGNOSTIC_MODE").strong());
+        let (rect, _resp) = ui.allocate_at_least(ui.available_size(), egui::Sense::hover());
+        let painter = ui.painter_at(rect);
+        
+        // Draw Page Background
+        painter.rect_filled(rect, 0.0, egui::Color32::WHITE);
+        painter.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, egui::Color32::BLACK), egui::StrokeKind::Inside);
+        
+        // Draw Dummy Text Lines
+        for i in 0..30 {
+            let y = rect.min.y + 40.0 + (i as f32 * 15.0);
+            if y < rect.max.y - 40.0 {
+                painter.line_segment(
+                    [egui::pos2(rect.min.x + 30.0, y), egui::pos2(rect.max.x - 30.0, y)],
+                    egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY)
+                );
+            }
+        }
+
+        // Draw Injections
+        for (idx, injection) in self.injections.iter().enumerate() {
+            let color = match idx % 3 {
+                0 => egui::Color32::from_rgba_premultiplied(255, 0, 0, 150),
+                1 => egui::Color32::from_rgba_premultiplied(0, 255, 0, 150),
+                _ => egui::Color32::from_rgba_premultiplied(0, 0, 255, 150),
+            };
+            
+            match injection.injection_type {
+                InjectionTypeGui::VisibleMetaBlock => {
+                    let y = match injection.position {
+                        InjectionPosition::Header => rect.min.y + 10.0,
+                        InjectionPosition::Footer => rect.max.y - 30.0,
+                        _ => rect.min.y + 100.0,
+                    };
+                    painter.rect_filled(
+                        egui::Rect::from_min_size(egui::pos2(rect.min.x + 10.0, y), egui::vec2(rect.width() - 20.0, 20.0)),
+                        0.0,
+                        color
+                    );
+                    painter.text(egui::pos2(rect.min.x + 15.0, y + 10.0), egui::Align2::LEFT_CENTER, format!("Module #{}", idx+1), egui::FontId::default(), egui::Color32::BLACK);
+                }
+                InjectionTypeGui::LowVisibilityBlock => {
+                    painter.rect_filled(
+                        egui::Rect::from_min_size(egui::pos2(rect.min.x + 10.0, rect.max.y - 10.0), egui::vec2(rect.width() - 20.0, 5.0)),
+                        0.0,
+                        color
+                    );
+                }
+                InjectionTypeGui::TrackingPixel => {
+                    painter.circle_filled(egui::pos2(rect.max.x - 20.0, rect.max.y - 20.0), 5.0, color);
+                    painter.text(egui::pos2(rect.max.x - 30.0, rect.max.y - 20.0), egui::Align2::RIGHT_CENTER, "TRACKER", egui::FontId::default(), egui::Color32::BLACK);
+                }
+                InjectionTypeGui::CodeInjection => {
+                    painter.rect_stroke(
+                        egui::Rect::from_min_size(egui::pos2(rect.min.x + 50.0, rect.min.y + 200.0), egui::vec2(rect.width() - 100.0, 50.0)),
+                        0.0,
+                        egui::Stroke::new(2.0, color),
+                        egui::StrokeKind::Inside
+                    );
+                    painter.text(egui::pos2(rect.center().x, rect.min.y + 225.0), egui::Align2::CENTER_CENTER, "MALICIOUS_PAYLOAD", egui::FontId::default(), egui::Color32::BLACK);
+                }
+                _ => {}
+            }
+        }
+    }
+
     fn render_main_content(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
             ui.add_space(10.0);
@@ -375,62 +473,6 @@ impl MyApp {
             
             ui.separator();
 
-            if self.show_injection_preview {
-                ui.group(|ui| {
-                    ui.label(egui::RichText::new("INJECTION PREVIEW (PAGE 1)").strong());
-                    let (rect, _resp) = ui.allocate_at_least(egui::vec2(ui.available_width(), 300.0), egui::Sense::hover());
-                    let painter = ui.painter_at(rect);
-                    
-                    // Draw Page Background
-                    painter.rect_filled(rect, 0.0, egui::Color32::WHITE);
-                    painter.rect_stroke(rect, 0.0, egui::Stroke::new(1.0, egui::Color32::BLACK), egui::StrokeKind::Inside);
-                    
-                    // Draw Dummy Text Lines
-                    for i in 0..20 {
-                        let y = rect.min.y + 20.0 + (i as f32 * 12.0);
-                        if y < rect.max.y - 20.0 {
-                            painter.line_segment(
-                                [egui::pos2(rect.min.x + 20.0, y), egui::pos2(rect.max.x - 20.0, y)],
-                                egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY)
-                            );
-                        }
-                    }
-
-                    // Draw Injections
-                    for (idx, injection) in self.injections.iter().enumerate() {
-                        let color = match idx % 3 {
-                            0 => egui::Color32::from_rgba_premultiplied(255, 0, 0, 100),
-                            1 => egui::Color32::from_rgba_premultiplied(0, 255, 0, 100),
-                            _ => egui::Color32::from_rgba_premultiplied(0, 0, 255, 100),
-                        };
-                        
-                        match injection.injection_type {
-                            InjectionTypeGui::VisibleMetaBlock => {
-                                let y = match injection.position {
-                                    InjectionPosition::Header => rect.min.y + 10.0,
-                                    InjectionPosition::Footer => rect.max.y - 30.0,
-                                    _ => rect.min.y + 100.0,
-                                };
-                                painter.rect_filled(
-                                    egui::Rect::from_min_size(egui::pos2(rect.min.x + 10.0, y), egui::vec2(rect.width() - 20.0, 20.0)),
-                                    2.0,
-                                    color
-                                );
-                                painter.text(egui::pos2(rect.min.x + 15.0, y + 10.0), egui::Align2::LEFT_CENTER, format!("Module #{}", idx+1), egui::FontId::default(), egui::Color32::BLACK);
-                            }
-                            InjectionTypeGui::LowVisibilityBlock => {
-                                painter.rect_filled(
-                                    egui::Rect::from_min_size(egui::pos2(rect.min.x + 10.0, rect.max.y - 10.0), egui::vec2(rect.width() - 20.0, 5.0)),
-                                    0.0,
-                                    color
-                                );
-                            }
-                            _ => {}
-                        }
-                    }
-                });
-            }
-
             egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
                 let mut to_remove = None;
                 let mut pending_error = None;
@@ -458,6 +500,8 @@ impl MyApp {
                                         ui.selectable_value(&mut injection.injection_type, InjectionTypeGui::StructuralFields, "Structural Fields");
                                         ui.selectable_value(&mut injection.injection_type, InjectionTypeGui::PaddingNoise, "Padding Noise");
                                         ui.selectable_value(&mut injection.injection_type, InjectionTypeGui::InlineJobAd, "Inline Job Ad");
+                                        ui.selectable_value(&mut injection.injection_type, InjectionTypeGui::TrackingPixel, "Tracking Pixel");
+                                        ui.selectable_value(&mut injection.injection_type, InjectionTypeGui::CodeInjection, "Code Injection");
                                     });
                                 
                                 ui.label("Intensity:");
@@ -759,7 +803,6 @@ impl MyApp {
                 },
                 InjectionTypeGui::OffpageLayer => ProfileConfig::OffpageLayer {
                     offset_strategy: OffpageOffset::BottomClip,
-                    length: None,
                     content,
                 },
                 InjectionTypeGui::UnderlayText => ProfileConfig::UnderlayText,
@@ -767,14 +810,20 @@ impl MyApp {
                     targets: vec![superpoweredcv::analysis::StructuralTarget::PdfTag], // Default for now
                 },
                 InjectionTypeGui::PaddingNoise => ProfileConfig::PaddingNoise {
-                    padding_tokens_before: Some(100),
-                    padding_tokens_after: Some(100),
+                    padding_tokens_before: 100,
+                    padding_tokens_after: 100,
                     padding_style: superpoweredcv::analysis::PaddingStyle::JobRelated,
                 },
                 InjectionTypeGui::InlineJobAd => ProfileConfig::InlineJobAd {
                     job_ad_source: superpoweredcv::analysis::JobAdSource::Inline,
                     placement: superpoweredcv::analysis::JobAdPlacement::Back,
                     ad_excerpt_ratio: 1.0,
+                },
+                InjectionTypeGui::TrackingPixel => ProfileConfig::TrackingPixel {
+                    url: "https://canarytokens.org/pixel".to_string(), // Default placeholder
+                },
+                InjectionTypeGui::CodeInjection => ProfileConfig::CodeInjection {
+                    payload: "alert('XSS')".to_string(), // Default placeholder
                 },
             };
             profiles.push(profile);
@@ -1018,7 +1067,7 @@ fn setup_custom_styles(ctx: &egui::Context) {
     // Spacing
     let mut style = (*ctx.style()).clone();
     style.spacing.item_spacing = egui::vec2(10.0, 10.0);
-    style.spacing.window_margin = egui::Margin::same(15.0);
+    style.spacing.window_margin = egui::Margin::same(15);
     style.spacing.button_padding = egui::vec2(10.0, 5.0);
     ctx.set_style(style);
 }

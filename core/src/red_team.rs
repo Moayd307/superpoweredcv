@@ -145,6 +145,16 @@ pub enum ProfileConfig {
         /// Ratio of the ad to include.
         ad_excerpt_ratio: f32,
     },
+    /// Tracking pixel for opening detection.
+    TrackingPixel {
+        /// URL of the remote image.
+        url: String,
+    },
+    /// Code injection payload.
+    CodeInjection {
+        /// The code or payload string.
+        payload: String,
+    },
 }
 
 impl ProfileConfig {

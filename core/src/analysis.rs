@@ -149,29 +149,37 @@ pub enum ProfileConfig {
     OffpageLayer {
         /// Offset strategy.
         offset_strategy: OffpageOffset,
-        /// Length of the text.
-        length: Option<u32>,
         /// Content configuration.
         #[serde(default)]
         content: InjectionContent,
     },
-    /// Text hidden under other elements.
+    /// Tracking pixel injection (URL link).
+    TrackingPixel {
+        /// The URL to track.
+        url: String,
+    },
+    /// Code injection (JavaScript).
+    CodeInjection {
+        /// The JavaScript payload.
+        payload: String,
+    },
+    /// Text hidden behind other content.
     UnderlayText,
     /// Injection into structural fields (metadata, tags).
     StructuralFields {
-        /// List of targets.
+        /// Targets for injection.
         targets: Vec<StructuralTarget>,
     },
-    /// Noise padding to confuse the model.
+    /// Noise padding around content.
     PaddingNoise {
-        /// Tokens of padding before the content.
-        padding_tokens_before: Option<u32>,
-        /// Tokens of padding after the content.
-        padding_tokens_after: Option<u32>,
-        /// Style of the padding.
+        /// Number of tokens before.
+        padding_tokens_before: usize,
+        /// Number of tokens after.
+        padding_tokens_after: usize,
+        /// Style of padding.
         padding_style: PaddingStyle,
     },
-    /// Injection of a job advertisement.
+    /// Inline job advertisement injection.
     InlineJobAd {
         /// Source of the job ad.
         job_ad_source: JobAdSource,
@@ -193,6 +201,8 @@ impl ProfileConfig {
             ProfileConfig::StructuralFields { .. } => "pdf.structural_fields",
             ProfileConfig::PaddingNoise { .. } => "pdf.padding_noise",
             ProfileConfig::InlineJobAd { .. } => "pdf.inline_job_ad",
+            ProfileConfig::TrackingPixel { .. } => "pdf.tracking_pixel",
+            ProfileConfig::CodeInjection { .. } => "pdf.code_injection",
         }
     }
 }
