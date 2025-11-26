@@ -99,17 +99,97 @@ button:active {
 
 /* Preview Styles */
 .preview {
-  margin-top: 1rem;
-  border-top: 2px dashed var(--border-color);
-  padding-top: 1rem;
+  margin-top: 10px;
+  border-top: 1px solid #333;
+  padding-top: 10px;
+  font-size: 0.7rem;
 }
 
 .preview-item {
-  margin-bottom: 0.5rem;
+  margin-bottom: 5px;
 }
 
 .preview-key {
   color: var(--secondary-color);
   font-weight: bold;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 5px;
+  font-size: 0.8rem;
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #fff;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background-color: var(--accent-color);
+  color: #000;
+  font-weight: bold;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* History List */
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  margin-bottom: 10px;
+  background: #111;
+}
+
+.history-item {
+  padding: 8px;
+  border-bottom: 1px solid #333;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-item:hover {
+  background-color: #222;
+}
+
+.history-date {
+  color: var(--secondary-color);
+  font-size: 0.6rem;
+}
+
+/* Settings */
+.setting-item {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.secondary-btn {
+  font-size: 0.8rem;
+  padding: 5px;
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #fff;
+  width: 100%;
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  background-color: #555;
 }
 
