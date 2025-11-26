@@ -112,6 +112,21 @@ describe('Content Script', () => {
         expect(results).toEqual(['JavaScript', 'Rust']);
     });
 
+    test('getSkillsFromDoc extracts skills using data-field selector', () => {
+        const mockDoc = document.implementation.createHTMLDocument();
+        mockDoc.body.innerHTML = `
+            <div data-field="skill_page_skill_topic">
+                <span aria-hidden="true">Python</span>
+            </div>
+            <div data-field="skill_page_skill_topic">
+                <span aria-hidden="true">Machine Learning</span>
+            </div>
+        `;
+        
+        const results = content.getSkillsFromDoc(mockDoc);
+        expect(results).toEqual(['Python', 'Machine Learning']);
+    });
+
     test('getLanguagesFromDoc extracts languages', () => {
         const mockDoc = document.implementation.createHTMLDocument();
         mockDoc.body.innerHTML = `

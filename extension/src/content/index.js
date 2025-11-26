@@ -107,14 +107,18 @@ async function autoScroll() {
  * Scrapes the main profile page and identifies sections needing navigation.
  */
 async function scrapeMainProfile() {
+    createProgressOverlay();
+    updateProgress('Waiting for page load...');
     const url = window.location.href;
     
     // Wait for the main profile name to appear to ensure page load
     await waitForSelector('h1', 5000);
 
     // Scroll to bottom to trigger lazy loading
+    updateProgress('Scrolling to load content...');
     await autoScroll();
 
+    updateProgress('Extracting profile data...');
     const sectionsToScrape = [];
     
     // Robust selectors for main profile info
@@ -158,7 +162,11 @@ async function scrapeMainProfile() {
     }
 
     // Contact info is special (overlay)
+    updateProgress('Fetching contact info...');
     profile.contactInfo = await getContactInfo();
+
+    updateProgress('Main profile scraped!');
+    setTimeout(removeProgressOverlay, 2000);
 
     return { profile, sectionsToScrape };
 }
@@ -167,21 +175,32 @@ async function scrapeMainProfile() {
  * Scrapes a specific section from the current page (assumed to be a details page).
  */
 async function scrapeSpecificSection(sectionKey) {
+    createProgressOverlay();
+    updateProgress(`Scraping ${sectionKey}...`);
+    
+    // Ensure we scroll to bottom to load all items in the list
+    await autoScroll();
+
+    let data = [];
     switch (sectionKey) {
-        case 'experience': return getExperienceFromDoc(document);
-        case 'education': return getEducationFromDoc(document);
-        case 'languages': return getLanguagesFromDoc(document);
-        case 'volunteering': return getVolunteeringFromDoc(document);
-        case 'skills': return getSkillsFromDoc(document);
-        case 'projects': return getProjectsFromDoc(document);
-        case 'courses': return getCoursesFromDoc(document);
-        case 'publications': return getPublicationsFromDoc(document);
-        case 'patents': return getPatentsFromDoc(document);
-        case 'organizations': return getOrganizationsFromDoc(document);
-        case 'interests': return getInterestsFromDoc(document);
-        case 'accomplishments': return getAccomplishmentsFromDoc(document);
-        default: return [];
+        case 'experience': data = getExperienceFromDoc(document); break;
+        case 'education': data = getEducationFromDoc(document); break;
+        case 'languages': data = getLanguagesFromDoc(document); break;
+        case 'volunteering': data = getVolunteeringFromDoc(document); break;
+        case 'skills': data = getSkillsFromDoc(document); break;
+        case 'projects': data = getProjectsFromDoc(document); break;
+        case 'courses': data = getCoursesFromDoc(document); break;
+        case 'publications': data = getPublicationsFromDoc(document); break;
+        case 'patents': data = getPatentsFromDoc(document); break;
+        case 'organizations': data = getOrganizationsFromDoc(document); break;
+        case 'interests': data = getInterestsFromDoc(document); break;
+        case 'accomplishments': data = getAccomplishmentsFromDoc(document); break;
+        default: data = [];
     }
+    
+    updateProgress('Done!');
+    setTimeout(removeProgressOverlay, 1000);
+    return data;
 }
 
 /**
@@ -477,6 +496,15 @@ function getEducationFromDoc(doc) {
  * @returns {Array<string>} List of skills.
  */
 function getSkillsFromDoc(doc) {
+    // Try to find the specific data-field used in details pages
+    const skillTopics = doc.querySelectorAll('[data-field="skill_page_skill_topic"]');
+    if (skillTopics.length > 0) {
+        return Array.from(skillTopics).map(el => {
+            const span = el.querySelector('span[aria-hidden="true"]');
+            return span ? span.textContent.trim() : el.textContent.trim();
+        }).filter(s => s);
+    }
+
     const items = getSectionItems(doc, 'skills');
     return items.map(item => {
         const skillEl = item.querySelector('.display-flex.align-items-center.mr1.hoverable-link-text span[aria-hidden="true"]') || item.querySelector('span[aria-hidden="true"]');
@@ -704,4 +732,80 @@ if (isNode) {
         getAccomplishmentsFromDoc,
         isOpenToWork
     };
+}
+
+/**
+ * Creates and injects a progress overlay into the page.
+ */
+function createProgressOverlay() {
+    if (typeof document === 'undefined' || document.getElementById('spcv-progress-overlay')) return;
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'spcv-progress-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10000;
+        background: #000;
+        color: #fff;
+        padding: 20px;
+        border: 4px solid #ff4500;
+        font-family: "Courier New", Courier, monospace;
+        box-shadow: 10px 10px 0px #ff4500;
+        min-width: 300px;
+        text-transform: uppercase;
+        font-weight: bold;
+        transition: all 0.1s ease;
+    `;
+    
+    const title = document.createElement('div');
+    title.textContent = 'SuperpoweredCV';
+    title.style.cssText = `
+        font-weight: 900;
+        margin-bottom: 12px;
+        color: #ff4500;
+        font-size: 20px;
+        letter-spacing: 2px;
+        border-bottom: 2px solid #fff;
+        padding-bottom: 8px;
+    `;
+    
+    const status = document.createElement('div');
+    status.id = 'spcv-progress-status';
+    status.textContent = 'Initializing...';
+    status.style.cssText = `
+        font-size: 16px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    `;
+    
+    overlay.appendChild(title);
+    overlay.appendChild(status);
+    document.body.appendChild(overlay);
+}
+
+/**
+ * Updates the text of the progress overlay.
+ * @param {string} message 
+ */
+function updateProgress(message) {
+    if (typeof document === 'undefined') return;
+    const status = document.getElementById('spcv-progress-status');
+    if (status) status.textContent = message;
+}
+
+/**
+ * Removes the progress overlay.
+ */
+function removeProgressOverlay() {
+    if (typeof document === 'undefined') return;
+    const overlay = document.getElementById('spcv-progress-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.style.transform = 'translateY(10px)';
+        setTimeout(() => overlay.remove(), 300);
+    }
 }

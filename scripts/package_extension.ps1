@@ -23,7 +23,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Linting failed" }
     npm run test
     if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
-} catch {
+}
+catch {
     Write-Error "Pre-build checks failed: $_"
     Pop-Location
     exit 1
