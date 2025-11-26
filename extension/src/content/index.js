@@ -71,6 +71,39 @@ function waitForSelector(selector, timeout = 5000) {
 }
 
 /**
+ * Helper to scroll to the bottom of the page to ensure all lazy-loaded content is visible.
+ */
+async function autoScroll() {
+    if (typeof window === 'undefined' || isNode) return;
+
+    await new Promise((resolve) => {
+        let lastHeight = document.body.scrollHeight;
+        let attempts = 0;
+        const maxAttempts = 3; // Stop if height doesn't change after 3 scrolls
+
+        const timer = setInterval(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+            
+            // Wait for potential lazy loading
+            setTimeout(() => {
+                const newHeight = document.body.scrollHeight;
+                if (newHeight > lastHeight) {
+                    lastHeight = newHeight;
+                    attempts = 0; // Reset attempts if we found more content
+                } else {
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 1000); // Wait 1s for content to load
+        }, 1200); // Scroll every 1.2s
+    });
+}
+
+/**
  * Scrapes the main profile page and identifies sections needing navigation.
  */
 async function scrapeMainProfile() {
@@ -78,6 +111,9 @@ async function scrapeMainProfile() {
     
     // Wait for the main profile name to appear to ensure page load
     await waitForSelector('h1', 5000);
+
+    // Scroll to bottom to trigger lazy loading
+    await autoScroll();
 
     const sectionsToScrape = [];
     
@@ -91,7 +127,8 @@ async function scrapeMainProfile() {
         headline,
         location,
         about: getAbout(),
-        url: url
+        url: url,
+        openToWork: isOpenToWork()
     };
 
     // Define sections and their scrapers
@@ -105,7 +142,9 @@ async function scrapeMainProfile() {
         { key: 'courses', id: 'courses', scraper: getCoursesFromDoc },
         { key: 'publications', id: 'publications', scraper: getPublicationsFromDoc },
         { key: 'patents', id: 'patents', scraper: getPatentsFromDoc },
-        { key: 'organizations', id: 'organizations', scraper: getOrganizationsFromDoc }
+        { key: 'organizations', id: 'organizations', scraper: getOrganizationsFromDoc },
+        { key: 'interests', id: 'interests', scraper: getInterestsFromDoc },
+        { key: 'accomplishments', id: 'accomplishments', scraper: getAccomplishmentsFromDoc }
     ];
 
     for (const sec of sections) {
@@ -139,8 +178,23 @@ async function scrapeSpecificSection(sectionKey) {
         case 'publications': return getPublicationsFromDoc(document);
         case 'patents': return getPatentsFromDoc(document);
         case 'organizations': return getOrganizationsFromDoc(document);
+        case 'interests': return getInterestsFromDoc(document);
+        case 'accomplishments': return getAccomplishmentsFromDoc(document);
         default: return [];
     }
+}
+
+/**
+ * Checks if the user is "Open to Work".
+ * @returns {boolean}
+ */
+function isOpenToWork() {
+    if (typeof document === 'undefined') return false;
+    const img = document.querySelector('.pv-top-card-profile-picture img');
+    // console.log('isOpenToWork check:', img ? img.outerHTML : 'No img');
+    if (!img) return false;
+    const title = img.getAttribute('title');
+    return title ? title.includes('#OPEN_TO_WORK') : false;
 }
 
 /**
@@ -228,64 +282,97 @@ function getExperienceFromDoc(doc) {
     const experiences = [];
 
     items.forEach(item => {
-        // Generic extraction strategy:
-        // 1. Get all visible spans (aria-hidden="true")
-        // 2. Filter out empty/separator spans
-        // 3. Map by position (Title, Company, Date, Location)
+        // Check for nested structure (Multiple roles at same company)
+        // Nested items usually have a list of roles inside the main item
+        const nestedRoles = item.querySelectorAll('.pvs-list__paged-list-item');
         
-        const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
-
-        if (texts.length < 2) return; // Need at least Title and Company
-
-        let title = texts[0];
-        let company = texts[1];
-        let dateRange = '';
-        let tenure = '';
-        let location = '';
-
-        // Try to identify date/tenure by pattern
-        // Date usually contains year (19xx or 20xx) or month names
-        // Tenure usually contains "yr" or "mos"
-        
-        // Find index of date-like string
-        const dateIndex = texts.findIndex(t => /\d{4}|Present/i.test(t) && (t.includes(' - ') || t.includes('·')));
-        
-        if (dateIndex > 1) {
-            // If we found a date later, everything before it might be title/company parts
-            // But usually Title is 0, Company is 1.
-            const dateText = texts[dateIndex];
-            const parts = dateText.split('·').map(s => s.trim());
-            dateRange = parts[0] || '';
-            if (parts.length > 1) tenure = parts[1];
+        if (nestedRoles.length > 0) {
+            // This is a nested experience (Company -> Roles)
+            // Extract Company Info from the header part
+            const header = item.querySelector('div.display-flex.flex-column.full-width');
+            const companySpans = header ? Array.from(header.querySelectorAll('span[aria-hidden="true"]')) : [];
+            const companyTexts = companySpans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
             
-            if (texts[dateIndex + 1]) location = texts[dateIndex + 1];
-        } else if (texts[2]) {
-             // Fallback: assume 3rd item is date
-             const parts = texts[2].split('·').map(s => s.trim());
-             dateRange = parts[0];
-             if (parts.length > 1) tenure = parts[1];
-             if (texts[3]) location = texts[3];
-        }
+            const company = companyTexts[0] || '';
+            // companyTexts[1] might be total duration or location
 
-        // Description
-        const description = getDescription(item);
+            nestedRoles.forEach(roleItem => {
+                const spans = Array.from(roleItem.querySelectorAll('span[aria-hidden="true"]'));
+                const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
+                
+                let title = texts[0] || '';
+                let dateRange = '';
+                let tenure = '';
+                let location = '';
+                
+                const dateIndex = texts.findIndex(t => /\d{4}|Present/i.test(t));
+                if (dateIndex > 0) {
+                    const parts = texts[dateIndex].split('·').map(s => s.trim());
+                    dateRange = parts[0];
+                    if (parts.length > 1) tenure = parts[1];
+                    if (texts[dateIndex + 1]) location = texts[dateIndex + 1];
+                }
 
-        // Skills
-        let skills = [];
-        const skillsContainer = Array.from(item.querySelectorAll('div')).find(div => div.textContent.includes('Skills:'));
-        if (skillsContainer) {
-            // Be careful not to grab the whole item text
-            // Usually skills are in a distinct div
-            const fullText = skillsContainer.textContent.trim();
-            // Check if this div is actually small enough to be just skills
-            if (fullText.length < 500) {
-                 const skillsText = fullText.replace(/^Skills:\s*/i, '');
-                 skills = skillsText.split('·').map(s => s.trim());
+                const description = getDescription(roleItem);
+                
+                experiences.push({ 
+                    title, 
+                    company, 
+                    date_range: dateRange, 
+                    tenure, 
+                    location, 
+                    description,
+                    is_nested: true 
+                });
+            });
+
+        } else {
+            // Standard single role
+            const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
+            const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
+
+            if (texts.length < 2) return; // Need at least Title and Company
+
+            let title = texts[0];
+            let company = texts[1];
+            let dateRange = '';
+            let tenure = '';
+            let location = '';
+
+            // Try to identify date/tenure by pattern
+            const dateIndex = texts.findIndex(t => /\d{4}|Present/i.test(t) && (t.includes(' - ') || t.includes('·')));
+            
+            if (dateIndex > 1) {
+                const dateText = texts[dateIndex];
+                const parts = dateText.split('·').map(s => s.trim());
+                dateRange = parts[0] || '';
+                if (parts.length > 1) tenure = parts[1];
+                
+                if (texts[dateIndex + 1]) location = texts[dateIndex + 1];
+            } else if (texts[2]) {
+                 // Fallback: assume 3rd item is date
+                 const parts = texts[2].split('·').map(s => s.trim());
+                 dateRange = parts[0];
+                 if (parts.length > 1) tenure = parts[1];
+                 if (texts[3]) location = texts[3];
             }
-        }
 
-        experiences.push({ title, company, date_range: dateRange, tenure, location, description, skills });
+            // Description
+            const description = getDescription(item);
+
+            // Skills
+            let skills = [];
+            const skillsContainer = Array.from(item.querySelectorAll('div')).find(div => div.textContent.includes('Skills:'));
+            if (skillsContainer) {
+                const fullText = skillsContainer.textContent.trim();
+                if (fullText.length < 500) {
+                     const skillsText = fullText.replace(/^Skills:\s*/i, '');
+                     skills = skillsText.split('·').map(s => s.trim());
+                }
+            }
+
+            experiences.push({ title, company, date_range: dateRange, tenure, location, description, skills });
+        }
     });
 
     return experiences;
@@ -500,6 +587,31 @@ function getOrganizationsFromDoc(doc) {
     }).filter(i => i.name);
 }
 
+function getInterestsFromDoc(doc) {
+    // Interests are usually in a separate section or card, often not a list like others
+    // But sometimes they are in a list.
+    // The python script looks for .pv-interests-section
+    // In modern LinkedIn, it might be under 'interests' id
+    const items = getSectionItems(doc, 'interests');
+    return items.map(item => {
+        const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t);
+        return { name: texts[0] || '' };
+    }).filter(i => i.name);
+}
+
+function getAccomplishmentsFromDoc(doc) {
+    // Accomplishments can be complex (Publications, Patents, etc are subsets)
+    // But there is also a generic "Accomplishments" section sometimes.
+    // We'll try to scrape generic items if found.
+    const items = getSectionItems(doc, 'accomplishments');
+    return items.map(item => {
+        const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t);
+        return { title: texts[0] || '', category: 'Accomplishment' };
+    }).filter(i => i.title);
+}
+
 /**
  * Scrapes Contact Info from the overlay.
  * @returns {Promise<Object>} Contact info object.
@@ -587,6 +699,9 @@ if (isNode) {
         getPublicationsFromDoc,
         getCoursesFromDoc,
         getPatentsFromDoc,
-        getOrganizationsFromDoc
+        getOrganizationsFromDoc,
+        getInterestsFromDoc,
+        getAccomplishmentsFromDoc,
+        isOpenToWork
     };
 }

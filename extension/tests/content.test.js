@@ -1,6 +1,10 @@
 const content = require('../src/content/index.js');
 
 describe('Content Script', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     test('getText returns empty string if document is undefined', () => {
         // We are in jsdom environment, so document exists.
         // We can mock querySelector to return null
@@ -241,5 +245,43 @@ describe('Content Script', () => {
         expect(results[0].role).toBe('Member');
         expect(results[0].date).toBe('2019 - 2020');
         expect(results[0].description).toBe('Participated in events.');
+    });
+
+    test('getInterestsFromDoc extracts interests', () => {
+        const mockDoc = document.implementation.createHTMLDocument();
+        mockDoc.body.innerHTML = `
+            <div class="pvs-list__paged-list-item">
+                <span aria-hidden="true">Technology</span>
+            </div>
+        `;
+        
+        const results = content.getInterestsFromDoc(mockDoc);
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('Technology');
+    });
+
+    test('getAccomplishmentsFromDoc extracts accomplishments', () => {
+        const mockDoc = document.implementation.createHTMLDocument();
+        mockDoc.body.innerHTML = `
+            <div class="pvs-list__paged-list-item">
+                <span aria-hidden="true">Best Coder Award</span>
+            </div>
+        `;
+        
+        const results = content.getAccomplishmentsFromDoc(mockDoc);
+        expect(results).toHaveLength(1);
+        expect(results[0].title).toBe('Best Coder Award');
+    });
+
+    test('isOpenToWork returns true if frame is present', () => {
+        document.body.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'pv-top-card-profile-picture';
+        const img = document.createElement('img');
+        img.setAttribute('title', 'John Doe #OPEN_TO_WORK');
+        div.appendChild(img);
+        document.body.appendChild(div);
+        
+        expect(content.isOpenToWork()).toBe(true);
     });
 });
