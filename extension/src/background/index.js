@@ -190,6 +190,9 @@ async function ensureContentScriptReady(tabId) {
         console.error('Injection failed:', e);
     }
     
+    return false;
+}
+
 // Export for testing
 if (typeof module !== 'undefined') {
     module.exports = {

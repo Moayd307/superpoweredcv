@@ -8,7 +8,10 @@
   },
   "scripts": {
     "test": "jest",
-    "lint": "eslint src/**/*.js"
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "format": "prettier --write \"src/**/*.{js,json,html,css}\"",
+    "package": "npm run lint && npm run test"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +22,7 @@
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "jest": "^30.2.0",
-    "jest-environment-jsdom": "^30.2.0"
+    "jest-environment-jsdom": "^30.2.0",
+    "prettier": "^3.2.5"
   }
 }

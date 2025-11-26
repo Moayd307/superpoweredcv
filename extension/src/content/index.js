@@ -325,7 +325,6 @@ function getEducationFromDoc(doc) {
         let school = texts[0] || '';
         let degree = texts[1] || '';
         let dateRange = '';
-        let grade = '';
         let description = '';
 
         // Try to find date
@@ -357,7 +356,7 @@ async function getSkills() {
         const doc = await fetchDocument(footerLink.href);
         if (doc) return getSkillsFromDoc(doc);
     }
-    }).filter(i => i.school);
+    return getSkillsFromDoc(document);
 }
 
 /**
@@ -365,7 +364,20 @@ async function getSkills() {
  * @param {Document} doc - The document to scrape.
  * @returns {Array<string>} List of skills.
  */
-function getSkillsFromDoc(doc) { {
+function getSkillsFromDoc(doc) {
+    const items = getSectionItems(doc, 'skills');
+    return items.map(item => {
+        const skillEl = item.querySelector('.display-flex.align-items-center.mr1.hoverable-link-text span[aria-hidden="true"]') || item.querySelector('span[aria-hidden="true"]');
+        return skillEl ? skillEl.innerText.trim() : '';
+    }).filter(s => s);
+}
+
+/**
+ * Helper to extract projects from a document.
+ * @param {Document} doc - The document to scrape.
+ * @returns {Array<Object>} List of projects.
+ */
+function getProjectsFromDoc(doc) {
     const items = getSectionItems(doc, 'projects');
     return items.map(item => {
         // Generic extraction
@@ -385,15 +397,12 @@ function getSkillsFromDoc(doc) { {
 
         // Link
         const linkEl = item.querySelector('a.optional-action-target-wrapper');
-    }).filter(s => s);
+        if (linkEl) link = linkEl.href;
+
+        return { title, date, description, link };
+    }).filter(i => i.title);
 }
 
-/**
- * Helper to extract projects from a document.
- * @param {Document} doc - The document to scrape.
- * @returns {Array<Object>} List of projects.
- */
-function getProjectsFromDoc(doc) {
 function getPublicationsFromDoc(doc) {
     const items = getSectionItems(doc, 'publications');
     return items.map(item => {
@@ -418,10 +427,15 @@ function getPublicationsFromDoc(doc) {
         return { title, date, description, link };
     }).filter(i => i.title);
 }
-    }).filter(i => i.title);
-}
 
-function getPublicationsFromDoc(doc) {
+function getCoursesFromDoc(doc) {
+    const items = getSectionItems(doc, 'courses');
+    return items.map(item => {
+        const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
+        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        
+        return {
+            name: texts[0] || '',
             number: texts[1] || ''
         };
     }).filter(i => i.name);
@@ -533,17 +547,6 @@ function getSectionItems(doc, sectionId) {
     return Array.from(items);
 }
 
-// Export for testing
-if (isNode) {
-    module.exports = {
-        scrapeProfile,
-        getText,
-        getAbout,
-        getExperience,
-        getEducation,
-        getSkills
-    };
-}
 // Export for testing
 if (isNode) {
     module.exports = {

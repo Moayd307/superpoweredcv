@@ -1,6 +1,4 @@
-const { handleStartScrape, ensureContentScriptReady, sendMessageToTab } = require('../src/background/index.js');
-
-// Mock chrome API
+// Mock chrome API BEFORE requiring the background script
 global.chrome = {
     runtime: {
         onMessage: {
@@ -22,6 +20,8 @@ global.chrome = {
         executeScript: jest.fn()
     }
 };
+
+const { handleStartScrape, ensureContentScriptReady, sendMessageToTab } = require('../src/background/index.js');
 
 describe('Background Script', () => {
     beforeEach(() => {

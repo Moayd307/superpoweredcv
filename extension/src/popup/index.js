@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const previewDiv = document.getElementById('preview');
     const tabs = document.querySelectorAll('.tab-btn');
     const contents = document.querySelectorAll('.tab-content');
-    const historyList = document.getElementById('historyList');
+    // historyList is used in renderHistory, not here
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     const clearDataBtn = document.getElementById('clearDataBtn');
     const autoDownloadCheckbox = document.getElementById('autoDownload');
