@@ -198,7 +198,7 @@ function getExperienceFromDoc(doc) {
         // 3. Map by position (Title, Company, Date, Location)
         
         const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
 
         if (texts.length < 2) return; // Need at least Title and Company
 
@@ -264,7 +264,7 @@ function getVolunteeringFromDoc(doc) {
     const items = getSectionItems(doc, 'volunteering');
     return items.map(item => {
         const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
 
         let role = texts[0] || '';
         let organization = texts[1] || '';
@@ -320,7 +320,7 @@ function getEducationFromDoc(doc) {
     const items = getSectionItems(doc, 'education');
     return items.map(item => {
         const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
 
         let school = texts[0] || '';
         let degree = texts[1] || '';
@@ -371,7 +371,7 @@ function getProjectsFromDoc(doc) {
     return items.map(item => {
         // Generic extraction
         const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
         
         let title = texts[0] || '';
         let date = '';
@@ -449,7 +449,7 @@ function getOrganizationsFromDoc(doc) {
     const items = getSectionItems(doc, 'organizations');
     return items.map(item => {
         const spans = Array.from(item.querySelectorAll('span[aria-hidden="true"]'));
-        const texts = spans.map(s => s.innerText.trim()).filter(t => t && t !== '·');
+        const texts = spans.map(s => s.textContent.trim()).filter(t => t && t !== '·');
 
         let name = texts[0] || '';
         let role = texts[1] || '';
