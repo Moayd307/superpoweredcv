@@ -71,116 +71,122 @@ impl PdfMutator for RealPdfMutator {
         let mut doc = Document::load(&request.base_pdf)
             .map_err(|e| crate::AnalysisError::PdfError(format!("Failed to load PDF: {}", e)))?;
 
+        let mut notes: Vec<String> = Vec::new();
+        let default_text = &request.template.text_template;
+        let mut final_injected_text = default_text.clone();
+
         let mut notes = Vec::new();
         let default_text = &request.template.text_template;
         let mut final_injected_text = default_text.clone();
 
-        match &request.profile {
-            ProfileConfig::VisibleMetaBlock { position, intensity: _, content } => {
-                let text_to_inject = get_injection_text(content, default_text);
-                final_injected_text = text_to_inject.clone();
-                let (x, y) = match position {
-                    InjectionPosition::Header => (50.0, 800.0),
-                    InjectionPosition::Footer => (50.0, 50.0),
-                    InjectionPosition::Section(_) => (50.0, 400.0), // Default to middle for now
-                };
-                // Inject on the first page
-                pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, x, y, 10.0, 0.0)?;
-                notes.push(format!("Injected visible block at {:?} ({}, {})", position, x, y));
-            }
-            ProfileConfig::LowVisibilityBlock { font_size_min, color_profile, content, .. } => {
-                let text_to_inject = get_injection_text(content, default_text);
-                final_injected_text = text_to_inject.clone();
-                let gray_level = match color_profile {
-                    LowVisibilityPalette::Gray => 0.95,
-                    LowVisibilityPalette::LightBlue => 0.90, // Simplified to gray for now
-                    LowVisibilityPalette::OffWhite => 0.99,
-                };
-                // Inject at bottom
-                pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, 50.0, 20.0, *font_size_min as f64, gray_level)?;
-                notes.push(format!("Injected low visibility block (size: {}, gray: {})", font_size_min, gray_level));
-            }
-            ProfileConfig::OffpageLayer { offset_strategy, content, .. } => {
-                let text_to_inject = get_injection_text(content, default_text);
-                final_injected_text = text_to_inject.clone();
-                let (x, y) = match offset_strategy {
-                    OffpageOffset::BottomClip => (50.0, -1000.0),
-                    OffpageOffset::RightClip => (1000.0, 500.0),
-                };
-                pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, x, y, 1.0, 0.0)?;
-                notes.push(format!("Injected offpage layer at ({}, {})", x, y));
-            }
-            ProfileConfig::UnderlayText => {
-                // Inject text behind existing content (e.g. white text or just first in stream)
-                // We use a large font size to cover area, but white color so it's invisible to human eye
-                // but present in stream. Or we can use black text if we are sure it's covered by an image.
-                // For safety/simplicity, we use white text (invisible) but placed first.
-                // Actually, spec says "invisible but still selectable".
-                let text_to_inject = default_text.clone();
-                final_injected_text = text_to_inject.clone();
-                pdf_utils::prepend_text_to_page(&mut doc, 1, &text_to_inject, 50.0, 400.0, 12.0, 1.0)?; // 1.0 is white in Gray colorspace
-                notes.push("Injected underlay text (white, prepended to stream)".to_string());
-            }
-            ProfileConfig::StructuralFields { targets } => {
-                let text_to_inject = default_text.clone();
-                final_injected_text = text_to_inject.clone();
-                
-                let info_id = match doc.trailer.get(b"Info").ok().and_then(|obj| obj.as_reference().ok()) {
-                    Some(id) => id,
-                    None => {
-                        let info_id = doc.add_object(dictionary! {});
-                        doc.trailer.set("Info", info_id);
-                        info_id
-                    }
-                };
+        for profile in &request.profiles {
+            match profile {
+                ProfileConfig::VisibleMetaBlock { position, intensity: _, content } => {
+                    let text_to_inject = get_injection_text(content, default_text);
+                    final_injected_text = text_to_inject.clone();
+                    let (x, y) = match position {
+                        InjectionPosition::Header => (50.0, 800.0),
+                        InjectionPosition::Footer => (50.0, 50.0),
+                        InjectionPosition::Section(_) => (50.0, 400.0), // Default to middle for now
+                    };
+                    // Inject on the first page
+                    pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, x, y, 10.0, 0.0)?;
+                    notes.push(format!("Injected visible block at {:?} ({}, {})", position, x, y));
+                }
+                ProfileConfig::LowVisibilityBlock { font_size_min, color_profile, content, .. } => {
+                    let text_to_inject = get_injection_text(content, default_text);
+                    final_injected_text = text_to_inject.clone();
+                    let gray_level = match color_profile {
+                        LowVisibilityPalette::Gray => 0.95,
+                        LowVisibilityPalette::LightBlue => 0.90, // Simplified to gray for now
+                        LowVisibilityPalette::OffWhite => 0.99,
+                    };
+                    // Inject at bottom
+                    pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, 50.0, 20.0, *font_size_min as f64, gray_level)?;
+                    notes.push(format!("Injected low visibility block (size: {}, gray: {})", font_size_min, gray_level));
+                }
+                ProfileConfig::OffpageLayer { offset_strategy, content, .. } => {
+                    let text_to_inject = get_injection_text(content, default_text);
+                    final_injected_text = text_to_inject.clone();
+                    let (x, y) = match offset_strategy {
+                        OffpageOffset::BottomClip => (50.0, -1000.0),
+                        OffpageOffset::RightClip => (1000.0, 500.0),
+                    };
+                    pdf_utils::add_text_to_page(&mut doc, 1, &text_to_inject, x, y, 1.0, 0.0)?;
+                    notes.push(format!("Injected offpage layer at ({}, {})", x, y));
+                }
+                ProfileConfig::UnderlayText => {
+                    // Inject text behind existing content (e.g. white text or just first in stream)
+                    // We use a large font size to cover area, but white color so it's invisible to human eye
+                    // but present in stream. Or we can use black text if we are sure it's covered by an image.
+                    // For safety/simplicity, we use white text (invisible) but placed first.
+                    // Actually, spec says "invisible but still selectable".
+                    let text_to_inject = default_text.clone();
+                    final_injected_text = text_to_inject.clone();
+                    pdf_utils::prepend_text_to_page(&mut doc, 1, &text_to_inject, 50.0, 400.0, 12.0, 1.0)?; // 1.0 is white in Gray colorspace
+                    notes.push("Injected underlay text (white, prepended to stream)".to_string());
+                }
+                ProfileConfig::StructuralFields { targets } => {
+                    let text_to_inject = default_text.clone();
+                    final_injected_text = text_to_inject.clone();
+                    
+                    let info_id = match doc.trailer.get(b"Info").ok().and_then(|obj| obj.as_reference().ok()) {
+                        Some(id) => id,
+                        None => {
+                            let info_id = doc.add_object(dictionary! {});
+                            doc.trailer.set("Info", info_id);
+                            info_id
+                        }
+                    };
 
-                if let Ok(info) = doc.get_object_mut(info_id) {
-                    if let Object::Dictionary(dict) = info {
-                        for target in targets {
-                            match target {
-                                crate::analysis::StructuralTarget::AltText => {
-                                    // Simulating AltText by adding a custom key, as real AltText requires structure tree
-                                    dict.set("AltTextInjection", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
-                                    notes.push("Injected into Info dict (simulated AltText)".to_string());
-                                }
-                                crate::analysis::StructuralTarget::PdfTag => {
-                                    dict.set("Keywords", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
-                                    notes.push("Injected into Keywords".to_string());
-                                }
-                                crate::analysis::StructuralTarget::XmpMetadata => {
-                                    dict.set("Subject", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
-                                    notes.push("Injected into Subject".to_string());
+                    if let Ok(info) = doc.get_object_mut(info_id) {
+                        if let Object::Dictionary(dict) = info {
+                            for target in targets {
+                                match target {
+                                    crate::analysis::StructuralTarget::AltText => {
+                                        // Simulating AltText by adding a custom key, as real AltText requires structure tree
+                                        dict.set("AltTextInjection", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
+                                        notes.push("Injected into Info dict (simulated AltText)".to_string());
+                                    }
+                                    crate::analysis::StructuralTarget::PdfTag => {
+                                        dict.set("Keywords", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
+                                        notes.push("Injected into Keywords".to_string());
+                                    }
+                                    crate::analysis::StructuralTarget::XmpMetadata => {
+                                        dict.set("Subject", Object::String(text_to_inject.clone().into(), StringFormat::Literal));
+                                        notes.push("Injected into Subject".to_string());
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            ProfileConfig::PaddingNoise { padding_tokens_before, padding_tokens_after, padding_style } => {
-                let noise = generate_noise(*padding_tokens_before, *padding_tokens_after, padding_style);
-                final_injected_text = noise.clone();
-                // Inject as low visibility text at the end
-                pdf_utils::add_text_to_page(&mut doc, 1, &noise, 50.0, 10.0, 1.0, 0.99)?;
-                notes.push(format!("Injected padding noise ({:?})", padding_style));
-            }
-            ProfileConfig::InlineJobAd { job_ad_source, placement, ad_excerpt_ratio } => {
-                let ad_text = match job_ad_source {
-                    crate::analysis::JobAdSource::Inline => "Senior Software Engineer required. Must have Rust experience.".to_string(), // Placeholder
-                    _ => "Job Ad Content Placeholder".to_string(),
-                };
-                final_injected_text = ad_text.clone();
-                
-                let (x, y) = match placement {
-                    crate::analysis::JobAdPlacement::Front => (50.0, 800.0),
-                    crate::analysis::JobAdPlacement::Back => (50.0, 50.0),
-                    _ => (50.0, 50.0),
-                };
-                
-                // Inject as visible text (or low vis depending on intent, assuming visible for now based on name)
-                // Spec says "Inline Job Ad", usually implies visible or hidden. Let's assume hidden/low-vis for red-teaming context usually,
-                // but "Inline" might mean visible. Let's use small white text for safety in this context.
-                pdf_utils::add_text_to_page(&mut doc, 1, &ad_text, x, y, 4.0, 0.95)?;
-                notes.push(format!("Injected inline job ad ({:?})", placement));
+                ProfileConfig::PaddingNoise { padding_tokens_before, padding_tokens_after, padding_style } => {
+                    let noise = generate_noise(*padding_tokens_before, *padding_tokens_after, padding_style);
+                    final_injected_text = noise.clone();
+                    // Inject as low visibility text at the end
+                    pdf_utils::add_text_to_page(&mut doc, 1, &noise, 50.0, 10.0, 1.0, 0.99)?;
+                    notes.push(format!("Injected padding noise ({:?})", padding_style));
+                }
+                ProfileConfig::InlineJobAd { job_ad_source, placement, ad_excerpt_ratio: _ } => {
+                    let ad_text = match job_ad_source {
+                        crate::analysis::JobAdSource::Inline => "Senior Software Engineer required. Must have Rust experience.".to_string(), // Placeholder
+                        _ => "Job Ad Content Placeholder".to_string(),
+                    };
+                    final_injected_text = ad_text.clone();
+                    
+                    let (x, y) = match placement {
+                        crate::analysis::JobAdPlacement::Front => (50.0, 800.0),
+                        crate::analysis::JobAdPlacement::Back => (50.0, 50.0),
+                        _ => (50.0, 50.0),
+                    };
+                    
+                    // Inject as visible text (or low vis depending on intent, assuming visible for now based on name)
+                    // Spec says "Inline Job Ad", usually implies visible or hidden. Let's assume hidden/low-vis for red-teaming context usually,
+                    // but "Inline" might mean visible. Let's use small white text for safety in this context.
+                    pdf_utils::add_text_to_page(&mut doc, 1, &ad_text, x, y, 4.0, 0.95)?;
+                    notes.push(format!("Injected inline job ad ({:?})", placement));
+                }
             }
         }
         
@@ -276,7 +282,7 @@ impl PdfMutator for StubPdfMutator {
             variant_hash: Some(hash),
             notes: vec![
                 "Stub mutator: copied base PDF (or created dummy)".into(),
-                format!("Applied profile: {:?}", request.profile),
+                format!("Applied profile: {:?}", request.profiles),
             ],
         })
     }

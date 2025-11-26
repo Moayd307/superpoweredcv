@@ -117,6 +117,8 @@ fn main() {
     }
 }
 
+use superpoweredcv::pdf::{PdfMutator, RealPdfMutator, PdfMutationRequest};
+
 fn generate_pdf_from_json(
     profile_path: &PathBuf, 
     output_path: &PathBuf,
@@ -141,6 +143,14 @@ fn generate_pdf_from_json(
         }
     };
 
+    // 1. Generate Clean PDF
+    let temp_path = std::env::temp_dir().join("superpoweredcv_cli_temp.pdf");
+    if let Err(e) = generator::generate_pdf(&profile, &temp_path, None) {
+        eprintln!("Failed to generate base PDF: {}", e);
+        return;
+    }
+
+    // 2. Prepare Injection
     let content = superpoweredcv::analysis::InjectionContent {
         phrases: phrases.clone(),
         generation_type: superpoweredcv::templates::GenerationType::Static,
@@ -174,9 +184,33 @@ fn generate_pdf_from_json(
         }),
     };
 
-    match generator::generate_pdf(&profile, output_path, injection_config.as_ref()) {
-        Ok(_) => println!("PDF generated successfully at {}", output_path.display()),
-        Err(e) => eprintln!("Failed to generate PDF: {}", e),
+    if let Some(config) = injection_config {
+        let mutator = RealPdfMutator::new(output_path.parent().unwrap());
+        let request = PdfMutationRequest {
+            base_pdf: temp_path,
+            profiles: vec![config],
+            template: default_templates().get("default").unwrap().clone(),
+            variant_id: Some(output_path.file_stem().unwrap().to_string_lossy().to_string()),
+        };
+
+        match mutator.mutate(request) {
+            Ok(res) => {
+                // Rename result to final output
+                if let Err(e) = std::fs::rename(&res.mutated_pdf, output_path) {
+                    eprintln!("Failed to move output file: {}", e);
+                } else {
+                    println!("PDF generated and injected successfully at {}", output_path.display());
+                }
+            }
+            Err(e) => eprintln!("Failed to inject PDF: {}", e),
+        }
+    } else {
+        // Just move the temp file if no injection
+        if let Err(e) = std::fs::rename(&temp_path, output_path) {
+            eprintln!("Failed to move output file: {}", e);
+        } else {
+            println!("Clean PDF generated successfully at {}", output_path.display());
+        }
     }
 }
 
