@@ -55,5 +55,60 @@ try {
     exit 1
 }
 
-Write-Host "Extension package check passed!" -ForegroundColor Green
+# 3. Check Dist Packages
+$distDir = Join-Path $PSScriptRoot "..\dist"
+$browsers = @("chrome", "firefox", "edge", "safari")
+
+if (Test-Path $distDir) {
+    Write-Host "`nChecking distribution packages in: $distDir" -ForegroundColor Cyan
+    
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    foreach ($browser in $browsers) {
+        $zipName = "superpoweredcv-$browser.zip"
+        $zipPath = Join-Path $distDir $zipName
+        
+        if (Test-Path $zipPath) {
+            Write-Host "[+] Found package: $zipName" -ForegroundColor Green
+            
+            try {
+                $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+                $entries = $zip.Entries | Select-Object -ExpandProperty FullName
+                
+                # Check for critical files inside zip
+                # Note: Zip entries usually use forward slashes
+                $criticalZipFiles = @(
+                    "manifest.json",
+                    "src/content/index.js",
+                    "src/popup/index.html"
+                )
+                
+                $missingInZip = @()
+                foreach ($crit in $criticalZipFiles) {
+                    # Normalize slashes for comparison just in case
+                    $found = $entries | Where-Object { $_ -replace '\\', '/' -match "$crit$" }
+                    if (-not $found) {
+                        $missingInZip += $crit
+                    }
+                }
+                
+                if ($missingInZip.Count -eq 0) {
+                    Write-Host "    [+] Contents verified (manifest, content script, popup)" -ForegroundColor Gray
+                } else {
+                    Write-Host "    [-] Missing files in zip: $($missingInZip -join ', ')" -ForegroundColor Red
+                }
+                
+                $zip.Dispose()
+            } catch {
+                Write-Host "    [-] Error reading zip file: $_" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "[-] Missing package: $zipName" -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-Host "`n[-] Dist directory not found. Run package_extension.ps1 first." -ForegroundColor Yellow
+}
+
+Write-Host "`nExtension package check passed!" -ForegroundColor Green
 exit 0

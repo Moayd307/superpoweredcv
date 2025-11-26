@@ -15,9 +15,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const debugModeCheckbox = document.getElementById('debugMode');
 
     // Load Settings
-    const settings = await loadSettings();
-    if (autoDownloadCheckbox) autoDownloadCheckbox.checked = settings.autoDownload;
-    if (debugModeCheckbox) debugModeCheckbox.checked = settings.debugMode;
+    try {
+        const settings = await loadSettings();
+        if (autoDownloadCheckbox) autoDownloadCheckbox.checked = settings.autoDownload;
+        if (debugModeCheckbox) debugModeCheckbox.checked = settings.debugMode;
+    } catch (e) {
+        console.error("Failed to load settings:", e);
+    }
 
     // Tab Switching
     tabs.forEach(tab => {

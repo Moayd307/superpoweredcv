@@ -7,7 +7,7 @@
     "48": "src/assets/icon.png",
     "128": "src/assets/icon.png"
   },
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": "src/assets/icon.png"

@@ -67,5 +67,49 @@ else
     fi
 fi
 
-echo -e "\033[0;32mExtension package check passed!\033[0m"
+# 3. Check Dist Packages
+DIST_DIR="$SCRIPT_DIR/../dist"
+BROWSERS=("chrome" "firefox" "edge" "safari")
+
+if [ -d "$DIST_DIR" ]; then
+    echo -e "\n\033[0;36mChecking distribution packages in: $DIST_DIR\033[0m"
+    
+    for browser in "${BROWSERS[@]}"; do
+        ZIP_NAME="superpoweredcv-$browser.zip"
+        ZIP_PATH="$DIST_DIR/$ZIP_NAME"
+        
+        if [ -f "$ZIP_PATH" ]; then
+            echo -e "\033[0;32m[+] Found package: $ZIP_NAME\033[0m"
+            
+            if command -v unzip &> /dev/null; then
+                # Check contents
+                MISSING_IN_ZIP=()
+                REQUIRED_IN_ZIP=("manifest.json" "src/content/index.js" "src/popup/index.html")
+                
+                # List zip contents
+                ZIP_CONTENTS=$(unzip -l "$ZIP_PATH")
+                
+                for req in "${REQUIRED_IN_ZIP[@]}"; do
+                    if ! echo "$ZIP_CONTENTS" | grep -q "$req"; then
+                        MISSING_IN_ZIP+=("$req")
+                    fi
+                done
+                
+                if [ ${#MISSING_IN_ZIP[@]} -eq 0 ]; then
+                    echo -e "\033[0;37m    [+] Contents verified (manifest, content script, popup)\033[0m"
+                else
+                    echo -e "\033[0;31m    [-] Missing files in zip: ${MISSING_IN_ZIP[*]}\033[0m"
+                fi
+            else
+                 echo -e "\033[0;33m    [!] unzip command not found, skipping content check\033[0m"
+            fi
+        else
+            echo -e "\033[0;33m[-] Missing package: $ZIP_NAME\033[0m"
+        fi
+    done
+else
+    echo -e "\n\033[0;33m[-] Dist directory not found. Run package_extension.sh first.\033[0m"
+fi
+
+echo -e "\n\033[0;32mExtension package check passed!\033[0m"
 exit 0
